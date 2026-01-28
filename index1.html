@@ -155,6 +155,17 @@
     background: #e2e8f0;
     border-radius: 2px;
     margin-top: 2px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .box-bar-fill {
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 100%;
+    border-radius: 2px;
+    transition: width 0.4s cubic-bezier(0.16, 1, 0.3, 1), background 0.4s ease;
   }
 
   /* Coin */
@@ -384,7 +395,7 @@
 
 <div class="slider-bar">
   <span>Transfer</span>
-  <input type="range" id="transferSlider" min="100" max="5000" step="100" value="500">
+  <input type="range" id="transferSlider" min="100" max="100000" step="100" value="500">
   <span class="slider-amount" id="sliderLabel">$5</span>
 </div>
 <div class="grid" id="grid"></div>
@@ -412,18 +423,30 @@ let creakTimer = null;
 let lastCreakTime = 0;
 let currentDropTarget = null;
 
+// Random int in range (cents)
+function randRange(min, max) {
+  return Math.round((min + Math.random() * (max - min)) / 100) * 100;
+}
+
 // Envelope data — value is cents to avoid floating point
-const envelopes = [
-  { icon: 'account_balance', label: 'Income', value: 50000, color: '#7c6fbd' },
-  { icon: 'autorenew', label: 'Recurring', value: 50000, color: '#48bb78' },
-  { icon: 'directions_car', label: 'Transportation', value: 50000, color: '#f687b3' },
-  { icon: 'spa', label: 'Appearance/Pha...', value: 50000, color: '#68d391' },
-  { icon: 'home', label: 'Household', value: 50000, color: '#4299e1' },
-  { icon: 'restaurant', label: 'Dining Out', value: 50000, color: '#9f7aea' },
-  { icon: 'shopping_cart', label: 'Groceries', value: 50000, color: '#fc8181' },
-  { icon: 'flight', label: 'Travel', value: 50000, color: '#38b2ac' },
-  { icon: 'card_giftcard', label: 'Gifts', value: 50000, color: '#ed8936' },
+// budget = the "full" amount for the progress bar
+const envelopesDef = [
+  { icon: 'account_balance', label: 'Income', color: '#7c6fbd', budgetRange: [80000, 200000] },
+  { icon: 'autorenew', label: 'Recurring', color: '#48bb78', budgetRange: [50000, 120000] },
+  { icon: 'directions_car', label: 'Transportation', color: '#f687b3', budgetRange: [20000, 60000] },
+  { icon: 'spa', label: 'Appearance/Pha...', color: '#68d391', budgetRange: [15000, 40000] },
+  { icon: 'home', label: 'Household', color: '#4299e1', budgetRange: [80000, 200000] },
+  { icon: 'restaurant', label: 'Dining Out', color: '#9f7aea', budgetRange: [20000, 60000] },
+  { icon: 'shopping_cart', label: 'Groceries', color: '#fc8181', budgetRange: [30000, 80000] },
+  { icon: 'flight', label: 'Travel', color: '#38b2ac', budgetRange: [40000, 150000] },
+  { icon: 'card_giftcard', label: 'Gifts', color: '#ed8936', budgetRange: [10000, 50000] },
 ];
+
+const envelopes = envelopesDef.map(def => {
+  const budget = randRange(def.budgetRange[0], def.budgetRange[1]);
+  const value = randRange(Math.round(budget * 0.1), Math.round(budget * 0.9));
+  return { ...def, value, budget };
+});
 
 // Format cents to display string
 function formatAmount(cents) {
@@ -437,6 +460,20 @@ function formatAmount(cents) {
   }
   if (dollars % 1 === 0) return `${sign}$${dollars.toFixed(0)}`;
   return `${sign}$${dollars.toFixed(2)}`;
+}
+
+function updateBar(env, currentValue) {
+  if (!env.barFillEl) return;
+  const pct = Math.max(0, Math.min(100, (currentValue / env.budget) * 100));
+  env.barFillEl.style.width = `${pct}%`;
+  // Color shifts toward red when overspent or near empty
+  if (currentValue <= 0) {
+    env.barFillEl.style.background = '#e53e3e';
+  } else if (pct < 20) {
+    env.barFillEl.style.background = '#ed8936';
+  } else {
+    env.barFillEl.style.background = env.color;
+  }
 }
 
 // Smoothly animate an amount element from one value to another
@@ -481,15 +518,17 @@ for (let i = 0; i < GRID_SIZE * GRID_SIZE; i++) {
   box.dataset.index = i;
 
   const amountStr = formatAmount(env.value);
+  const fillPct = Math.max(0, Math.min(100, (env.value / env.budget) * 100));
   box.innerHTML = `
     <div class="box-icon" style="background: ${env.color}"><span class="material-symbols-rounded">${env.icon}</span></div>
     <div class="box-label">${env.label}</div>
     <div class="box-amount ${env.value < 0 ? 'negative' : ''}">${amountStr}</div>
-    <div class="box-bar"></div>
+    <div class="box-bar"><div class="box-bar-fill" style="width: ${fillPct}%; background: ${env.color}"></div></div>
   `;
 
-  // Store reference to amount element on envelope data
+  // Store references
   env.amountEl = box.querySelector('.box-amount');
+  env.barFillEl = box.querySelector('.box-bar-fill');
 
   cell.appendChild(box);
   grid.appendChild(cell);
@@ -890,6 +929,7 @@ function transferCoins(sourceBox, targetBox) {
       if (emitted === COIN_COUNT) sourceDisplayed = sourceTo;
       sourceEnv.amountEl.textContent = formatAmount(Math.round(sourceDisplayed));
       sourceEnv.amountEl.classList.toggle('negative', sourceDisplayed < 0);
+      updateBar(sourceEnv, sourceDisplayed);
     }, i * EMIT_STAGGER);
   });
 
@@ -964,6 +1004,7 @@ function transferCoins(sourceBox, targetBox) {
 
         targetEnv.amountEl.textContent = formatAmount(Math.round(targetDisplayed));
         targetEnv.amountEl.classList.toggle('negative', targetDisplayed < 0);
+        updateBar(targetEnv, targetDisplayed);
 
         // Flash target green on each landing
         targetEnv.amountEl.classList.remove('flash-up');
