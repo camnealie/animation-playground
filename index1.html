@@ -1,0 +1,1154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, user-scalable=no">
+<title>Envelope Money Transfer</title>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,1,0" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #1a1a2e;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    overflow: hidden;
+    -webkit-user-select: none;
+    user-select: none;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  }
+
+  .slider-bar {
+    width: 100%;
+    max-width: 480px;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: rgba(255,255,255,0.7);
+    font-size: 13px;
+    font-weight: 500;
+  }
+
+  .slider-bar input[type="range"] {
+    flex: 1;
+    -webkit-appearance: none;
+    appearance: none;
+    height: 4px;
+    background: rgba(255,255,255,0.15);
+    border-radius: 2px;
+    outline: none;
+  }
+
+  .slider-bar input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+    cursor: pointer;
+  }
+
+  .slider-amount {
+    min-width: 48px;
+    text-align: right;
+    font-weight: 700;
+    color: #fff;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    padding: 16px;
+    max-width: 480px;
+    width: 100%;
+  }
+
+  .cell {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .box {
+    width: 100%;
+    background: #fff;
+    border-radius: 14px;
+    cursor: grab;
+    touch-action: none;
+    transition: transform 0.1s ease-out;
+    padding: 16px 8px 14px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  }
+
+  .box.dragging {
+    cursor: grabbing;
+    transition: none;
+  }
+
+  .box-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+  }
+
+  .box-icon .material-symbols-rounded {
+    font-family: 'Material Symbols Rounded';
+    font-size: 26px;
+    font-weight: normal;
+    font-style: normal;
+    line-height: 1;
+    letter-spacing: normal;
+    text-transform: none;
+    white-space: nowrap;
+    word-wrap: normal;
+    direction: ltr;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .box-label {
+    font-size: 12px;
+    font-weight: 500;
+    color: #4a5568;
+    text-align: center;
+    line-height: 1.2;
+  }
+
+  .box-amount {
+    font-size: 16px;
+    font-weight: 700;
+    color: #1a202c;
+    transition: color 0.3s ease;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .box-amount.negative {
+    color: #e53e3e;
+  }
+
+  .box-amount.flash-down {
+    color: #e53e3e;
+  }
+
+  .box-amount.flash-up {
+    color: #48bb78;
+  }
+
+  .box-bar {
+    width: 60%;
+    height: 3px;
+    background: #e2e8f0;
+    border-radius: 2px;
+    margin-top: 2px;
+  }
+
+  /* Coin */
+  .coin {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, #f9e547, #f1c40f 40%, #d4a017 100%);
+    box-shadow:
+      0 2px 8px rgba(0,0,0,0.4),
+      inset 0 -2px 4px rgba(0,0,0,0.2),
+      inset 0 2px 4px rgba(255,255,255,0.3);
+    position: fixed;
+    pointer-events: none;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    font-weight: 900;
+    color: #b8860b;
+    text-shadow: 0 1px 1px rgba(255,255,255,0.3);
+    font-family: -apple-system, sans-serif;
+    opacity: 0;
+    transform: scale(0);
+  }
+
+  /* snap-back is done via JS Web Animations API so it can start from the deformed state */
+
+  /* Coin pops at source then zips to finger via JS */
+  .coin.visible {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  .coin.popping {
+    opacity: 1;
+    animation: popAtSource 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+  }
+
+  @keyframes popAtSource {
+    0% { opacity: 0; transform: scale(0) rotate(-20deg); }
+    60% { opacity: 1; transform: scale(1.8) rotate(5deg); }
+    100% { opacity: 1; transform: scale(1) rotate(0deg); }
+  }
+
+  .coin.zipping {
+    opacity: 1;
+    transform: scale(1);
+    transition: left 0.25s cubic-bezier(0.2, 0, 0, 1),
+                top 0.25s cubic-bezier(0.2, 0, 0, 1);
+  }
+
+  .coin.free {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  /* Burst ring from coin */
+  .coin-burst {
+    position: fixed;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 99;
+    opacity: 0;
+  }
+
+  .coin-burst.go {
+    animation: burstRing 0.5s ease-out forwards;
+  }
+
+  @keyframes burstRing {
+    0% { opacity: 0.7; transform: scale(1); box-shadow: 0 0 0 3px rgba(241, 196, 15, 0.8), 0 0 20px rgba(241, 196, 15, 0.4); }
+    100% { opacity: 0; transform: scale(2.5); box-shadow: 0 0 0 1px rgba(241, 196, 15, 0), 0 0 40px rgba(241, 196, 15, 0); }
+  }
+
+  /* Spark particles */
+  .spark {
+    position: fixed;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: #f1c40f;
+    pointer-events: none;
+    z-index: 99;
+    opacity: 0;
+  }
+
+  .spark.go {
+    animation: sparkFly 0.45s ease-out forwards;
+  }
+
+  @keyframes sparkFly {
+    0% { opacity: 1; transform: translate(0, 0) scale(1); }
+    100% { opacity: 0; transform: translate(var(--sx), var(--sy)) scale(0); }
+  }
+
+  /* Target box — ready to receive */
+  .box.drop-target {
+    transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275),
+                box-shadow 0.2s ease;
+    transform: scale(1.08);
+    box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.5), 0 4px 12px rgba(0,0,0,0.1);
+  }
+
+  /* Coin snaps to target center */
+  .coin.locked {
+    transition: left 0.15s ease-out,
+                top 0.15s ease-out !important;
+  }
+
+  .coin.reset {
+    animation: popOut 0.2s ease-in forwards;
+  }
+
+  @keyframes popOut {
+    0% { opacity: 1; transform: scale(1); }
+    100% { opacity: 0; transform: scale(0) rotate(20deg); }
+  }
+
+  /* Floating +/- amount badges */
+  .amount-badge {
+    position: absolute;
+    pointer-events: none;
+    z-index: 102;
+    font-size: 14px;
+    font-weight: 700;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    opacity: 0;
+    padding: 2px 8px;
+    border-radius: 8px;
+  }
+
+  .amount-badge.minus {
+    color: #e53e3e;
+    background: rgba(229, 62, 62, 0.1);
+    animation: floatUp 0.9s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  .amount-badge.plus {
+    color: #48bb78;
+    background: rgba(72, 187, 120, 0.1);
+    animation: floatDown 0.9s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  @keyframes floatUp {
+    0% { opacity: 0; transform: translateY(0) scale(0.7); }
+    20% { opacity: 1; transform: translateY(-4px) scale(1.1); }
+    50% { opacity: 1; transform: translateY(-16px) scale(1); }
+    100% { opacity: 0; transform: translateY(-32px) scale(0.9); }
+  }
+
+  @keyframes floatDown {
+    0% { opacity: 0; transform: translateY(0) scale(0.7); }
+    20% { opacity: 1; transform: translateY(4px) scale(1.1); }
+    50% { opacity: 1; transform: translateY(8px) scale(1); }
+    100% { opacity: 0; transform: translateY(16px) scale(0.9); }
+  }
+
+  /* Inline delta badge shown during preview */
+  .delta-badge {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 1px 5px;
+    border-radius: 6px;
+    margin-left: 3px;
+    font-variant-numeric: tabular-nums;
+    vertical-align: middle;
+  }
+
+  .delta-badge.minus {
+    color: #e53e3e;
+    background: rgba(229, 62, 62, 0.1);
+  }
+
+  .delta-badge.plus {
+    color: #48bb78;
+    background: rgba(72, 187, 120, 0.1);
+  }
+
+  /* Sparkle trail behind dragged coin */
+  .trail-spark {
+    position: fixed;
+    pointer-events: none;
+    z-index: 99;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(249, 229, 71, 0.9), rgba(241, 196, 15, 0) 70%);
+  }
+
+  /* Ambient background particles */
+  .ambient-particle {
+    position: fixed;
+    pointer-events: none;
+    z-index: 0;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.06);
+  }
+
+  /* Transfer coins */
+  .transfer-coin {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, #f9e547, #f1c40f 40%, #d4a017 100%);
+    box-shadow:
+      0 2px 6px rgba(0,0,0,0.4),
+      inset 0 -2px 3px rgba(0,0,0,0.2),
+      inset 0 2px 3px rgba(255,255,255,0.3);
+    position: fixed;
+    pointer-events: none;
+    z-index: 101;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 900;
+    color: #b8860b;
+    font-family: -apple-system, sans-serif;
+  }
+</style>
+</head>
+<body>
+
+<div class="slider-bar">
+  <span>Transfer</span>
+  <input type="range" id="transferSlider" min="100" max="5000" step="100" value="500">
+  <span class="slider-amount" id="sliderLabel">$5</span>
+</div>
+<div class="grid" id="grid"></div>
+<div class="coin" id="coin">$</div>
+<div class="coin-burst" id="burst"></div>
+
+<script>
+const GRID_SIZE = 3;
+const DRAG_LIMIT = 20;
+const POP_THRESHOLD = 80;
+let TRANSFER_CENTS = 500; // controlled by slider
+
+// Haptic "creak" — short pulses that get faster as you stretch further
+const CREAK_INTERVAL_MAX = 120; // ms between pulses at start of drag
+const CREAK_INTERVAL_MIN = 25;  // ms between pulses near the pop threshold
+const CREAK_BUZZ_MS = 8;        // each individual buzz duration
+
+const grid = document.getElementById('grid');
+const coinEl = document.getElementById('coin');
+const burstEl = document.getElementById('burst');
+
+let activeBox = null;
+let dragState = null;
+let creakTimer = null;
+let lastCreakTime = 0;
+let currentDropTarget = null;
+
+// Envelope data — value is cents to avoid floating point
+const envelopes = [
+  { icon: 'account_balance', label: 'Income', value: 50000, color: '#7c6fbd' },
+  { icon: 'autorenew', label: 'Recurring', value: 50000, color: '#48bb78' },
+  { icon: 'directions_car', label: 'Transportation', value: 50000, color: '#f687b3' },
+  { icon: 'spa', label: 'Appearance/Pha...', value: 50000, color: '#68d391' },
+  { icon: 'home', label: 'Household', value: 50000, color: '#4299e1' },
+  { icon: 'restaurant', label: 'Dining Out', value: 50000, color: '#9f7aea' },
+  { icon: 'shopping_cart', label: 'Groceries', value: 50000, color: '#fc8181' },
+  { icon: 'flight', label: 'Travel', value: 50000, color: '#38b2ac' },
+  { icon: 'card_giftcard', label: 'Gifts', value: 50000, color: '#ed8936' },
+];
+
+// Format cents to display string
+function formatAmount(cents) {
+  const abs = Math.abs(cents);
+  const sign = cents < 0 ? '-' : '';
+  const dollars = abs / 100;
+  if (dollars >= 1000) {
+    // Show as $Xk
+    const k = dollars / 1000;
+    return `${sign}$${k % 1 === 0 ? k.toFixed(0) : k.toFixed(1)}k`;
+  }
+  if (dollars % 1 === 0) return `${sign}$${dollars.toFixed(0)}`;
+  return `${sign}$${dollars.toFixed(2)}`;
+}
+
+// Smoothly animate an amount element from one value to another
+function animateAmount(amountEl, fromCents, toCents, duration, envelope) {
+  const startTime = performance.now();
+  const delta = toCents - fromCents;
+
+  // Flash color
+  amountEl.classList.remove('flash-up', 'flash-down');
+  void amountEl.offsetWidth;
+  amountEl.classList.add(delta > 0 ? 'flash-up' : 'flash-down');
+
+  function tick(now) {
+    const t = Math.min(1, (now - startTime) / duration);
+    // Ease out cubic
+    const eased = 1 - Math.pow(1 - t, 3);
+    const current = Math.round(fromCents + delta * eased);
+    amountEl.textContent = formatAmount(current);
+    amountEl.classList.toggle('negative', current < 0);
+
+    if (t < 1) {
+      requestAnimationFrame(tick);
+    } else {
+      // Clear flash after a beat
+      setTimeout(() => {
+        amountEl.classList.remove('flash-up', 'flash-down');
+      }, 300);
+      envelope.value = toCents;
+    }
+  }
+  requestAnimationFrame(tick);
+}
+
+// Build grid
+for (let i = 0; i < GRID_SIZE * GRID_SIZE; i++) {
+  const cell = document.createElement('div');
+  cell.className = 'cell';
+  const env = envelopes[i];
+
+  const box = document.createElement('div');
+  box.className = 'box';
+  box.dataset.index = i;
+
+  const amountStr = formatAmount(env.value);
+  box.innerHTML = `
+    <div class="box-icon" style="background: ${env.color}"><span class="material-symbols-rounded">${env.icon}</span></div>
+    <div class="box-label">${env.label}</div>
+    <div class="box-amount ${env.value < 0 ? 'negative' : ''}">${amountStr}</div>
+    <div class="box-bar"></div>
+  `;
+
+  // Store reference to amount element on envelope data
+  env.amountEl = box.querySelector('.box-amount');
+
+  cell.appendChild(box);
+  grid.appendChild(cell);
+}
+
+// Slider
+const transferSlider = document.getElementById('transferSlider');
+const sliderLabel = document.getElementById('sliderLabel');
+transferSlider.addEventListener('input', () => {
+  TRANSFER_CENTS = parseInt(transferSlider.value);
+  sliderLabel.textContent = formatAmount(TRANSFER_CENTS);
+});
+
+// Pointer events
+grid.addEventListener('pointerdown', onPointerDown);
+window.addEventListener('pointermove', onPointerMove);
+window.addEventListener('pointerup', onPointerUp);
+window.addEventListener('pointercancel', onPointerUp);
+window.addEventListener('touchend', onPointerUp);
+
+function onPointerDown(e) {
+  const box = e.target.closest('.box');
+  if (!box) return;
+
+  e.preventDefault();
+
+  const rect = box.getBoundingClientRect();
+  activeBox = box;
+  dragState = {
+    startX: e.clientX,
+    startY: e.clientY,
+    boxCenterX: rect.left + rect.width / 2,
+    boxCenterY: rect.top + rect.height / 2,
+    coinPopped: false,
+    lastDist: 0,
+  };
+  lastCreakTime = 0;
+
+  box.classList.add('dragging');
+}
+
+function doCreak(tension) {
+  // tension is 0..1 representing how close we are to popping
+  if (!navigator.vibrate) return;
+
+  const now = performance.now();
+  // Interval shrinks as tension rises — creaking gets faster
+  const interval = CREAK_INTERVAL_MAX - tension * (CREAK_INTERVAL_MAX - CREAK_INTERVAL_MIN);
+
+  if (now - lastCreakTime >= interval) {
+    // Buzz duration also grows slightly with tension
+    const buzzDuration = Math.round(CREAK_BUZZ_MS + tension * 8);
+    navigator.vibrate(buzzDuration);
+    lastCreakTime = now;
+  }
+}
+
+function spawnBurst(cx, cy) {
+  // Burst ring
+  burstEl.style.left = `${cx - 20}px`;
+  burstEl.style.top = `${cy - 20}px`;
+  burstEl.className = 'coin-burst';
+  void burstEl.offsetWidth;
+  burstEl.className = 'coin-burst go';
+
+  // Sparks
+  const SPARK_COUNT = 8;
+  for (let i = 0; i < SPARK_COUNT; i++) {
+    const spark = document.createElement('div');
+    spark.className = 'spark';
+    const angle = (Math.PI * 2 / SPARK_COUNT) * i + (Math.random() - 0.5) * 0.5;
+    const dist = 25 + Math.random() * 20;
+    spark.style.left = `${cx - 2}px`;
+    spark.style.top = `${cy - 2}px`;
+    spark.style.setProperty('--sx', `${Math.cos(angle) * dist}px`);
+    spark.style.setProperty('--sy', `${Math.sin(angle) * dist}px`);
+    document.body.appendChild(spark);
+    void spark.offsetWidth;
+    spark.classList.add('go');
+    spark.addEventListener('animationend', () => spark.remove());
+  }
+}
+
+function onPointerMove(e) {
+  if (!activeBox || !dragState) return;
+
+  const dx = e.clientX - dragState.startX;
+  const dy = e.clientY - dragState.startY;
+  const dist = Math.sqrt(dx * dx + dy * dy);
+
+  if (!dragState.coinPopped) {
+    const factor = DRAG_LIMIT * (1 - Math.exp(-dist / (DRAG_LIMIT * 4)));
+    const angle = Math.atan2(dy, dx);
+    const moveX = Math.cos(angle) * factor;
+    const moveY = Math.sin(angle) * factor;
+
+    // Deform the box — stretch toward finger, squash perpendicular
+    const tension = Math.min(dist / POP_THRESHOLD, 1);
+    const stretchAmount = 1 + tension * 0.25;   // up to 1.25x along drag axis
+    const squashAmount = 1 - tension * 0.12;   // down to 0.88x perpendicular
+    const angleDeg = angle * (180 / Math.PI);
+
+    // rotate → scale (stretch along X = drag direction) → rotate back, then translate
+    activeBox.style.transform = `translate(${moveX}px, ${moveY}px) rotate(${angleDeg}deg) scale(${stretchAmount}, ${squashAmount}) rotate(${-angleDeg}deg)`;
+
+    // Haptic creak — starts after 20% of threshold
+    const creakTension = Math.max(0, (dist - POP_THRESHOLD * 0.2)) / (POP_THRESHOLD * 0.8);
+    if (creakTension > 0 && creakTension < 1) {
+      doCreak(Math.min(creakTension, 1));
+    }
+
+    dragState.lastDist = dist;
+
+    // Pop the coin
+    if (dist >= POP_THRESHOLD) {
+      dragState.coinPopped = true;
+
+      // Capture the current deformed transform as the animation start
+      const currentTransform = activeBox.style.transform;
+      const mx = Math.cos(angle) * factor;
+      const my = Math.sin(angle) * factor;
+
+      // Snap-back via Web Animations — starts from exact deformed state
+      // Capture box ref locally since activeBox gets nulled on pointerup
+      const snapBox = activeBox;
+      snapBox.style.transition = 'none';
+      const snapAnim = snapBox.animate([
+        { transform: currentTransform },
+        { transform: `translate(${-mx * 2.0}px, ${-my * 2.0}px) scale(0.85)`, offset: 0.12 },
+        { transform: `translate(${mx * 1.0}px, ${my * 1.0}px) scale(1.1)`, offset: 0.28 },
+        { transform: `translate(${-mx * 0.4}px, ${-my * 0.4}px) scale(0.93)`, offset: 0.44 },
+        { transform: `translate(${mx * 0.15}px, ${my * 0.15}px) scale(1.03)`, offset: 0.60 },
+        { transform: `translate(${-mx * 0.05}px, ${-my * 0.05}px) scale(0.99)`, offset: 0.78 },
+        { transform: 'translate(0, 0) scale(1)' },
+      ], {
+        duration: 700,
+        easing: 'linear',
+        fill: 'forwards',
+      });
+      snapAnim.onfinish = () => {
+        snapAnim.cancel();
+        snapBox.style.transform = 'translate(0, 0) scale(1)';
+      };
+
+      // Coin zips from box center to finger using rAF lerp
+      const bx = dragState.boxCenterX;
+      const by = dragState.boxCenterY;
+      dragState.coinPhase = 'zipping';
+      dragState.pendingFingerX = e.clientX;
+      dragState.pendingFingerY = e.clientY;
+
+      // Place coin at box center, visible
+      coinEl.className = 'coin';
+      coinEl.style.transition = 'none';
+      coinEl.style.left = `${bx - 20}px`;
+      coinEl.style.top = `${by - 20}px`;
+      coinEl.style.opacity = '1';
+      coinEl.style.transform = 'scale(1)';
+
+      // Lerp coin from current pos to finger over frames
+      let coinX = bx;
+      let coinY = by;
+      const ZIP_SPEED = 0.35; // lerp factor per frame
+
+      function zipTick() {
+        if (!dragState || dragState.coinPhase !== 'zipping') return;
+
+        const targetX = dragState.pendingFingerX;
+        const targetY = dragState.pendingFingerY;
+        coinX += (targetX - coinX) * ZIP_SPEED;
+        coinY += (targetY - coinY) * ZIP_SPEED;
+
+        coinEl.style.left = `${coinX - 20}px`;
+        coinEl.style.top = `${coinY - 20}px`;
+
+        // Close enough? Switch to free
+        const d = Math.sqrt((targetX - coinX) ** 2 + (targetY - coinY) ** 2);
+        if (d < 2) {
+          coinEl.style.left = `${targetX - 20}px`;
+          coinEl.style.top = `${targetY - 20}px`;
+          dragState.coinPhase = 'free';
+          return;
+        }
+
+        requestAnimationFrame(zipTick);
+      }
+      requestAnimationFrame(zipTick);
+
+      spawnBurst(bx, by);
+
+      // Big "snap" vibration on break
+      if (navigator.vibrate) navigator.vibrate([0, 10, 40]);
+    }
+  } else {
+    // Always track finger for the zip target
+    dragState.pendingFingerX = e.clientX;
+    dragState.pendingFingerY = e.clientY;
+
+    // Don't move coin position while zipping (lerp handles it)
+    // But still detect drop targets during zip
+    if (dragState.coinPhase === 'zipping') {
+      // fall through to drop target detection below
+    }
+
+    // Check if coin is over another box (not the source)
+    const hitBox = getDropTarget(e.clientX, e.clientY);
+
+    if (hitBox && hitBox !== currentDropTarget) {
+      // Restore previous target's amount
+      if (currentDropTarget) {
+        currentDropTarget.classList.remove('drop-target');
+        restorePreview(currentDropTarget);
+      }
+      hitBox.classList.add('drop-target');
+      currentDropTarget = hitBox;
+      if (navigator.vibrate) navigator.vibrate(15);
+
+      // Show preview on both source and target
+      showPreview(activeBox, hitBox);
+    } else if (!hitBox && currentDropTarget) {
+      currentDropTarget.classList.remove('drop-target');
+      restorePreview(currentDropTarget);
+      restorePreview(activeBox);
+      currentDropTarget = null;
+    }
+
+    if (dragState.coinPhase === 'free') {
+      coinEl.style.transition = 'none';
+      coinEl.style.opacity = '1';
+      coinEl.style.transform = 'scale(1)';
+      coinEl.style.left = `${e.clientX - 20}px`;
+      coinEl.style.top = `${e.clientY - 20}px`;
+    }
+  }
+}
+
+function getDropTarget(x, y) {
+  const boxes = grid.querySelectorAll('.box');
+  for (const box of boxes) {
+    if (box === activeBox) continue;
+    const r = box.getBoundingClientRect();
+    if (x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) {
+      return box;
+    }
+  }
+  return null;
+}
+
+function showPreview(sourceBox, targetBox) {
+  const sourceIdx = parseInt(sourceBox.dataset.index);
+  const targetIdx = parseInt(targetBox.dataset.index);
+  const sourceEnv = envelopes[sourceIdx];
+  const targetEnv = envelopes[targetIdx];
+
+  const transferAmount = Math.min(TRANSFER_CENTS, Math.abs(sourceEnv.value));
+
+  // Remove any existing delta badges
+  clearDeltaBadge(sourceEnv.amountEl);
+  clearDeltaBadge(targetEnv.amountEl);
+
+  // Add inline delta badges
+  const minusBadge = document.createElement('span');
+  minusBadge.className = 'delta-badge minus';
+  minusBadge.textContent = `-${formatAmount(transferAmount)}`;
+  sourceEnv.amountEl.appendChild(minusBadge);
+
+  const plusBadge = document.createElement('span');
+  plusBadge.className = 'delta-badge plus';
+  plusBadge.textContent = `+${formatAmount(transferAmount)}`;
+  targetEnv.amountEl.appendChild(plusBadge);
+}
+
+function clearDeltaBadge(amountEl) {
+  const badge = amountEl.querySelector('.delta-badge');
+  if (badge) badge.remove();
+}
+
+function restorePreview(box) {
+  const idx = parseInt(box.dataset.index);
+  const env = envelopes[idx];
+  clearDeltaBadge(env.amountEl);
+}
+
+function spawnAmountBadge(box, text, type) {
+  const rect = box.getBoundingClientRect();
+  const badge = document.createElement('div');
+  badge.className = `amount-badge ${type}`;
+  badge.textContent = text;
+  badge.style.position = 'fixed';
+  badge.style.left = `${rect.left + rect.width / 2}px`;
+  badge.style.transform = 'translateX(-50%)';
+  if (type === 'minus') {
+    badge.style.top = `${rect.top - 4}px`;
+  } else {
+    badge.style.bottom = `${window.innerHeight - rect.bottom + 4}px`;
+  }
+  document.body.appendChild(badge);
+  badge.addEventListener('animationend', () => badge.remove());
+}
+
+function transferCoins(sourceBox, targetBox) {
+  const GRAVITY = 0.14;         // strong gravitational pull
+  const EMIT_SPEED = 3.0;       // outward velocity
+  const EMIT_STAGGER = 50;     // ms between each coin launch
+  const ABSORB_RADIUS = 45;     // roughly half the box size — touching = caught
+  const DRAG = 0.97;            // heavy air resistance — straighter paths
+  const COIN_R = 16;            // half coin size for edge bouncing
+
+  const sourceIdx = parseInt(sourceBox.dataset.index);
+  const targetIdx = parseInt(targetBox.dataset.index);
+  const sourceEnv = envelopes[sourceIdx];
+  const targetEnv = envelopes[targetIdx];
+
+  // Transfer amount — move $5 per transfer, or whatever the source has
+  const transferAmount = Math.min(TRANSFER_CENTS, Math.abs(sourceEnv.value));
+  if (transferAmount <= 0) return; // nothing to transfer
+
+  // Scale coin count with transfer amount: 3 coins at $1, up to ~12 at $50
+  const COIN_COUNT = Math.max(3, Math.min(12, Math.round(transferAmount / 150)));
+
+  // Per-coin amount
+  const perCoin = transferAmount / COIN_COUNT;
+
+  // Start the smooth count animations on both amounts
+  const sourceFrom = sourceEnv.value;
+  const targetFrom = targetEnv.value;
+  const sourceTo = sourceFrom - transferAmount;
+  const targetTo = targetFrom + transferAmount;
+
+  // Amounts animate as coins emit/land
+  let sourceDisplayed = sourceFrom;
+  let targetDisplayed = targetFrom;
+
+  const sr = sourceBox.getBoundingClientRect();
+  const tr = targetBox.getBoundingClientRect();
+  const sx = sr.left + sr.width / 2;
+  const sy = sr.top + sr.height / 2;
+  const tx = tr.left + tr.width / 2;
+  const ty = tr.top + tr.height / 2;
+
+  // Source box gentle deflate
+  sourceBox.animate([
+    { transform: 'scale(1)' },
+    { transform: 'scale(0.88)', offset: 0.3 },
+    { transform: 'scale(0.92)', offset: 0.7 },
+    { transform: 'scale(1)' },
+  ], { duration: 1200, easing: 'ease-in-out' });
+
+  if (navigator.vibrate) navigator.vibrate(20);
+
+  // Floating +/- badges
+  const badgeText = formatAmount(transferAmount);
+  spawnAmountBadge(sourceBox, `-${badgeText}`, 'minus');
+  spawnAmountBadge(targetBox, `+${badgeText}`, 'plus');
+
+  // Flash source amount on transfer start
+  sourceEnv.amountEl.classList.remove('flash-up', 'flash-down');
+  void sourceEnv.amountEl.offsetWidth;
+  sourceEnv.amountEl.classList.add('flash-down');
+
+  let landed = 0;
+  const particles = [];
+
+  for (let i = 0; i < COIN_COUNT; i++) {
+    const coin = document.createElement('div');
+    coin.className = 'transfer-coin';
+    coin.textContent = '$';
+    coin.style.opacity = '0';
+    document.body.appendChild(coin);
+
+    // Emit direction — spread around a circle
+    const angle = (Math.PI * 2 / COIN_COUNT) * i + (Math.random() - 0.5) * 0.6;
+    const speed = EMIT_SPEED * (0.8 + Math.random() * 0.4);
+
+    particles.push({
+      el: coin,
+      x: sx,
+      y: sy,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed,
+      scale: 0,
+      rotation: 0,
+      rotSpeed: (Math.random() - 0.5) * 3,
+      alive: false,     // starts inactive, launched by stagger
+      launched: false,
+    });
+  }
+
+  // Stagger launches — tick source amount down as each coin emits
+  particles.forEach((p, i) => {
+    setTimeout(() => {
+      p.alive = true;
+      p.launched = true;
+
+      // Tick source down as coins leave
+      const emitted = i + 1;
+      sourceDisplayed = sourceFrom - (perCoin * emitted);
+      if (emitted === COIN_COUNT) sourceDisplayed = sourceTo;
+      sourceEnv.amountEl.textContent = formatAmount(Math.round(sourceDisplayed));
+      sourceEnv.amountEl.classList.toggle('negative', sourceDisplayed < 0);
+    }, i * EMIT_STAGGER);
+  });
+
+  function tick() {
+    let allDone = true;
+
+    for (const p of particles) {
+      if (!p.launched) { allDone = false; continue; }
+      if (!p.alive) continue;
+      allDone = false;
+
+      // Grow in during first frames
+      if (p.scale < 1) {
+        p.scale = Math.min(1, p.scale + 0.08);
+        p.el.style.opacity = '1';
+      }
+
+      // Gravity toward target
+      const dx = tx - p.x;
+      const dy = ty - p.y;
+      const distSq = dx * dx + dy * dy;
+      const dist = Math.sqrt(distSq);
+
+      // Inverse square gravity (strong when close)
+      const force = GRAVITY * Math.max(1, 8000 / distSq);
+      p.vx += (dx / dist) * force;
+      p.vy += (dy / dist) * force;
+
+      // Constant inward drift — prevents orbiting
+      p.vx += (dx / dist) * 0.5;
+      p.vy += (dy / dist) * 0.5;
+
+      // Air drag
+      p.vx *= DRAG;
+      p.vy *= DRAG;
+
+      p.x += p.vx;
+      p.y += p.vy;
+      p.rotation += p.rotSpeed;
+
+      // Bounce off screen edges
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+      if (p.x < COIN_R) { p.x = COIN_R; p.vx = Math.abs(p.vx) * 0.6; }
+      if (p.x > vw - COIN_R) { p.x = vw - COIN_R; p.vx = -Math.abs(p.vx) * 0.6; }
+      if (p.y < COIN_R) { p.y = COIN_R; p.vy = Math.abs(p.vy) * 0.6; }
+      if (p.y > vh - COIN_R) { p.y = vh - COIN_R; p.vy = -Math.abs(p.vy) * 0.6; }
+
+      // Scale shrinks as it gets close to target
+      const approachScale = Math.min(1, dist / 60);
+      const renderScale = p.scale * (0.3 + approachScale * 0.7);
+
+      p.el.style.left = `${p.x - 16}px`;
+      p.el.style.top = `${p.y - 16}px`;
+      p.el.style.transform = `scale(${renderScale}) rotate(${p.rotation}deg)`;
+      p.el.style.opacity = Math.min(1, dist / 20);
+
+      // Absorbed?
+      if (dist < ABSORB_RADIUS) {
+        p.alive = false;
+        p.el.remove();
+        landed++;
+
+        // Tick the target amount up — each coin carries its share
+        targetDisplayed += perCoin;
+
+        // Snap to final values on last coin to avoid rounding drift
+        if (landed === COIN_COUNT) {
+          targetDisplayed = targetTo;
+          sourceEnv.value = sourceTo;
+        }
+
+        targetEnv.amountEl.textContent = formatAmount(Math.round(targetDisplayed));
+        targetEnv.amountEl.classList.toggle('negative', targetDisplayed < 0);
+
+        // Flash target green on each landing
+        targetEnv.amountEl.classList.remove('flash-up');
+        void targetEnv.amountEl.offsetWidth;
+        targetEnv.amountEl.classList.add('flash-up');
+
+        targetBox.animate([
+          { transform: 'scale(1)' },
+          { transform: `scale(${1.04 + (landed / COIN_COUNT) * 0.08})` },
+          { transform: 'scale(1)' },
+        ], { duration: 200, easing: 'cubic-bezier(0.175, 0.885, 0.32, 1.275)' });
+
+        if (navigator.vibrate) navigator.vibrate(8);
+
+        if (landed === COIN_COUNT) {
+          // Commit final target value
+          targetEnv.value = targetTo;
+
+          // Clear flash colors after a beat
+          setTimeout(() => {
+            sourceEnv.amountEl.classList.remove('flash-down');
+            targetEnv.amountEl.classList.remove('flash-up');
+          }, 400);
+
+          targetBox.animate([
+            { transform: 'scale(1)' },
+            { transform: 'scale(1.15)' },
+            { transform: 'scale(0.96)' },
+            { transform: 'scale(1.04)' },
+            { transform: 'scale(1)' },
+          ], { duration: 350, easing: 'linear' });
+          if (navigator.vibrate) navigator.vibrate(25);
+        }
+      }
+    }
+
+    if (!allDone) requestAnimationFrame(tick);
+  }
+
+  requestAnimationFrame(tick);
+}
+
+function onPointerUp(e) {
+  if (!activeBox) return;
+
+  // Kill zip loop immediately
+  if (dragState) dragState.coinPhase = 'dead';
+
+  const droppedOnTarget = currentDropTarget && dragState && dragState.coinPopped;
+  const sourceBox = activeBox;
+  const targetBox = currentDropTarget;
+
+  // Reset box
+  sourceBox.style.transition = 'transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+  sourceBox.style.transform = 'translate(0, 0)';
+  sourceBox.classList.remove('dragging');
+
+  // Hide the dragged coin
+  coinEl.className = 'coin';
+  coinEl.removeAttribute('style');
+
+  // If dropped on a target, trigger the transfer
+  if (droppedOnTarget) {
+    restorePreview(sourceBox);
+    restorePreview(targetBox);
+    transferCoins(sourceBox, targetBox);
+  }
+
+  // Clear drop target
+  if (targetBox) {
+    if (!droppedOnTarget) {
+      restorePreview(targetBox);
+      restorePreview(sourceBox);
+    }
+    targetBox.classList.remove('drop-target');
+  }
+
+  activeBox = null;
+  dragState = null;
+  currentDropTarget = null;
+  lastCreakTime = 0;
+}
+
+// Clean up transitions
+grid.addEventListener('transitionend', (e) => {
+  if (e.target.classList.contains('box') && !e.target.classList.contains('dragging')) {
+    e.target.style.transition = '';
+  }
+});
+
+// ── Sparkle trail ──
+let trailInterval = null;
+
+function startTrail() {
+  if (trailInterval) return;
+  trailInterval = setInterval(() => {
+    if (!dragState || !dragState.coinPopped) return;
+    const cx = parseFloat(coinEl.style.left) + 20;
+    const cy = parseFloat(coinEl.style.top) + 20;
+    if (isNaN(cx) || isNaN(cy)) return;
+    for (let i = 0; i < 3; i++) spawnTrailSpark(cx, cy);
+  }, 20);
+}
+
+function stopTrail() {
+  clearInterval(trailInterval);
+  trailInterval = null;
+}
+
+function spawnTrailSpark(x, y) {
+  const spark = document.createElement('div');
+  spark.className = 'trail-spark';
+  const size = 5 + Math.random() * 12;
+  const spread = 20;
+  const dx = (Math.random() - 0.5) * spread;
+  const dy = (Math.random() - 0.5) * spread;
+  spark.style.width = `${size}px`;
+  spark.style.height = `${size}px`;
+  spark.style.left = `${x - size / 2 + dx}px`;
+  spark.style.top = `${y - size / 2 + dy}px`;
+  spark.style.opacity = '1';
+  document.body.appendChild(spark);
+
+  const driftX = dx * 2 + (Math.random() - 0.5) * 16;
+  const driftY = dy * 2 + 10 + Math.random() * 16;
+  spark.animate([
+    { opacity: 1, transform: `scale(1) translate(0, 0)` },
+    { opacity: 0.6, transform: `scale(0.6) translate(${driftX * 0.5}px, ${driftY * 0.3}px)`, offset: 0.4 },
+    { opacity: 0, transform: `scale(0) translate(${driftX}px, ${driftY}px)` },
+  ], { duration: 400 + Math.random() * 300, easing: 'ease-out' }).onfinish = () => spark.remove();
+}
+
+// Hook trail into drag lifecycle
+const origPointerDown = onPointerDown;
+grid.removeEventListener('pointerdown', onPointerDown);
+grid.addEventListener('pointerdown', (e) => {
+  origPointerDown(e);
+  startTrail();
+});
+
+const origPointerUp = onPointerUp;
+window.removeEventListener('pointerup', onPointerUp);
+window.removeEventListener('pointercancel', onPointerUp);
+window.removeEventListener('touchend', onPointerUp);
+
+function wrappedPointerUp(e) {
+  origPointerUp(e);
+  stopTrail();
+}
+window.addEventListener('pointerup', wrappedPointerUp);
+window.addEventListener('pointercancel', wrappedPointerUp);
+window.addEventListener('touchend', wrappedPointerUp);
+
+// ── Ambient floating particles ──
+function spawnAmbientParticle() {
+  const p = document.createElement('div');
+  p.className = 'ambient-particle';
+  const size = 2 + Math.random() * 4;
+  const startX = Math.random() * window.innerWidth;
+  const startY = window.innerHeight + size;
+  const drift = (Math.random() - 0.5) * 80;
+  const duration = 6000 + Math.random() * 8000;
+
+  p.style.width = `${size}px`;
+  p.style.height = `${size}px`;
+  p.style.left = `${startX}px`;
+  p.style.top = `${startY}px`;
+
+  document.body.appendChild(p);
+
+  p.animate([
+    { opacity: 0, transform: `translate(0, 0)` },
+    { opacity: 0.08, offset: 0.1 },
+    { opacity: 0.06, offset: 0.8 },
+    { opacity: 0, transform: `translate(${drift}px, ${-startY - 40}px)` },
+  ], { duration, easing: 'linear' }).onfinish = () => p.remove();
+}
+
+// Stagger initial particles, then keep spawning
+for (let i = 0; i < 12; i++) {
+  setTimeout(spawnAmbientParticle, Math.random() * 4000);
+}
+setInterval(spawnAmbientParticle, 800);
+
+</script>
+
+</body>
+</html>
