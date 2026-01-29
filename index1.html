@@ -1244,55 +1244,6 @@ function spawnBurst(cx, cy) {
   }
 }
 
-// Pond ripple effect - single wave spreading from target
-function triggerPondRipple(targetIdx) {
-  const boxes = grid.querySelectorAll('.box');
-  const targetRow = Math.floor(targetIdx / GRID_SIZE);
-  const targetCol = targetIdx % GRID_SIZE;
-
-  boxes.forEach((box, idx) => {
-    if (idx === targetIdx) return; // skip the target itself
-
-    const row = Math.floor(idx / GRID_SIZE);
-    const col = idx % GRID_SIZE;
-
-    // Only affect cardinal directions (up/down/left/right, no diagonals)
-    const dx = col - targetCol;
-    const dy = row - targetRow;
-    if (dx !== 0 && dy !== 0) return; // skip diagonals
-
-    // Manhattan distance for cardinal directions
-    const dist = Math.abs(dx) + Math.abs(dy);
-
-    // Delay based on distance - wave spreads outward slowly
-    const delay = dist * 200;
-
-    // Intensity diminishes with distance
-    const intensity = Math.max(0, 1 - dist * 0.25);
-    if (intensity <= 0) return;
-
-    setTimeout(() => {
-      // Direction away from target (cardinal only, so one of these is 0)
-      const dirX = dx === 0 ? 0 : dx / Math.abs(dx);
-      const dirY = dy === 0 ? 0 : dy / Math.abs(dy);
-
-      // Subtle bump outward
-      const bumpX = dirX * intensity * 2;
-      const bumpY = dirY * intensity * 2;
-      const bumpScale = 1 + intensity * 0.02;
-
-      box.style.transition = 'transform 0.1s ease-out';
-      box.style.transform = `translate(${bumpX}px, ${bumpY}px) scale(${bumpScale})`;
-
-      // Return to rest
-      setTimeout(() => {
-        box.style.transition = 'transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
-        box.style.transform = 'translate(0, 0) scale(1)';
-      }, 100);
-    }, delay);
-  });
-}
-
 function onPointerMove(e) {
   if (!activeBox || !dragState) return;
 
@@ -1724,11 +1675,6 @@ function transferCoins(sourceBox, targetBox) {
         ], { duration: 200, easing: 'cubic-bezier(0.175, 0.885, 0.32, 1.275)' });
 
         if (navigator.vibrate) navigator.vibrate(8);
-
-        // Trigger pond ripple on first coin landing
-        if (landed === 1) {
-          triggerPondRipple(targetIdx);
-        }
 
         if (landed === COIN_COUNT) {
           // Commit final target value
