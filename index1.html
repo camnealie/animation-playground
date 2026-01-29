@@ -262,7 +262,69 @@
     align-items: center;
     justify-content: center;
     color: #fff;
+    position: relative;
+    overflow: hidden;
+    /* Gem-like 3D effect */
+    box-shadow:
+      inset 0 2px 4px rgba(255,255,255,0.4),
+      inset 0 -2px 4px rgba(0,0,0,0.2),
+      0 2px 8px rgba(0,0,0,0.15);
   }
+
+  /* Gem shine effect */
+  .box-icon::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+      135deg,
+      rgba(255,255,255,0.5) 0%,
+      rgba(255,255,255,0.2) 30%,
+      transparent 50%
+    );
+    transform: rotate(0deg);
+    pointer-events: none;
+  }
+
+  /* Animated sparkle highlight */
+  .box-icon::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 60%;
+    height: 100%;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(255,255,255,0.4),
+      transparent
+    );
+    transform: skewX(-20deg);
+    animation: gemShine 3s ease-in-out infinite;
+    pointer-events: none;
+  }
+
+  @keyframes gemShine {
+    0%, 100% { left: -100%; opacity: 0; }
+    10% { opacity: 1; }
+    40% { left: 150%; opacity: 1; }
+    50%, 100% { left: 150%; opacity: 0; }
+  }
+
+  /* Stagger shine animation per card */
+  .cell:nth-child(1) .box-icon::after { animation-delay: 0s; }
+  .cell:nth-child(2) .box-icon::after { animation-delay: 0.4s; }
+  .cell:nth-child(3) .box-icon::after { animation-delay: 0.8s; }
+  .cell:nth-child(4) .box-icon::after { animation-delay: 1.2s; }
+  .cell:nth-child(5) .box-icon::after { animation-delay: 1.6s; }
+  .cell:nth-child(6) .box-icon::after { animation-delay: 2.0s; }
+  .cell:nth-child(7) .box-icon::after { animation-delay: 2.4s; }
+  .cell:nth-child(8) .box-icon::after { animation-delay: 2.8s; }
+  .cell:nth-child(9) .box-icon::after { animation-delay: 0.2s; }
 
   .box-icon .material-symbols-rounded {
     font-family: 'Material Symbols Rounded';
@@ -1359,11 +1421,11 @@ function spawnAmountBadge(box, text, type) {
 }
 
 function transferCoins(sourceBox, targetBox) {
-  const GRAVITY = 0.14;         // strong gravitational pull
-  const EMIT_SPEED = 3.0;       // outward velocity
-  const EMIT_STAGGER = 50;     // ms between each coin launch
+  const GRAVITY = 0.08;         // gentler gravitational pull
+  const EMIT_SPEED = 2.0;       // slower outward velocity
+  const EMIT_STAGGER = 70;      // ms between each coin launch
   const ABSORB_RADIUS = 45;     // roughly half the box size — touching = caught
-  const DRAG = 0.97;            // heavy air resistance — straighter paths
+  const DRAG = 0.98;            // slightly less drag for smoother arcs
   const COIN_R = 16;            // half coin size for edge bouncing
 
   const sourceIdx = parseInt(sourceBox.dataset.index);
@@ -1488,8 +1550,8 @@ function transferCoins(sourceBox, targetBox) {
       p.vy += (dy / dist) * force;
 
       // Constant inward drift — prevents orbiting
-      p.vx += (dx / dist) * 0.5;
-      p.vy += (dy / dist) * 0.5;
+      p.vx += (dx / dist) * 0.25;
+      p.vy += (dy / dist) * 0.25;
 
       // Air drag
       p.vx *= DRAG;
@@ -1799,8 +1861,8 @@ amountInput.addEventListener('input', (e) => {
 
 // ── Coin Orbit Animation ──
 let orbitAngle = 0;
-const ORBIT_RADIUS = 25;
-const ORBIT_SPEED = 0.08; // radians per frame
+const ORBIT_RADIUS = 20;
+const ORBIT_SPEED = 0.03; // radians per frame (slower, gentler orbit)
 let orbitRAF = null;
 
 function startOrbit() {
@@ -1826,7 +1888,7 @@ function startOrbit() {
 
     coinEl.style.left = `${orbitX - 20}px`;
     coinEl.style.top = `${orbitY - 20}px`;
-    coinEl.style.transform = `scale(${wobble}) rotate(${orbitAngle * 30}deg)`;
+    coinEl.style.transform = `scale(${wobble}) rotate(${orbitAngle * 15}deg)`;
 
     orbitRAF = requestAnimationFrame(tick);
   }
