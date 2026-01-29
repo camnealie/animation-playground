@@ -1244,6 +1244,57 @@ function spawnBurst(cx, cy) {
   }
 }
 
+// Cascade disturbance to neighboring boxes
+function disturbNeighbors(activeIdx, tension, angle) {
+  const boxes = grid.querySelectorAll('.box');
+  const row = Math.floor(activeIdx / GRID_SIZE);
+  const col = activeIdx % GRID_SIZE;
+
+  // Check all 8 neighbors
+  const neighbors = [
+    { r: row - 1, c: col - 1, delay: 30 },  // top-left
+    { r: row - 1, c: col, delay: 20 },      // top
+    { r: row - 1, c: col + 1, delay: 30 },  // top-right
+    { r: row, c: col - 1, delay: 20 },      // left
+    { r: row, c: col + 1, delay: 20 },      // right
+    { r: row + 1, c: col - 1, delay: 30 },  // bottom-left
+    { r: row + 1, c: col, delay: 20 },      // bottom
+    { r: row + 1, c: col + 1, delay: 30 },  // bottom-right
+  ];
+
+  neighbors.forEach(n => {
+    if (n.r < 0 || n.r >= GRID_SIZE || n.c < 0 || n.c >= GRID_SIZE) return;
+    const idx = n.r * GRID_SIZE + n.c;
+    const box = boxes[idx];
+    if (!box || box === activeBox) return;
+
+    // Direction from active box to neighbor
+    const dirX = n.c - col;
+    const dirY = n.r - row;
+
+    // Diminished effect - push away from active box
+    const pushStrength = tension * 0.3;
+    const pushX = dirX * pushStrength * 4;
+    const pushY = dirY * pushStrength * 4;
+
+    // Slight scale reaction
+    const neighborScale = 1 - tension * 0.04;
+
+    box.style.transition = 'transform 0.15s ease-out';
+    box.style.transform = `translate(${pushX}px, ${pushY}px) scale(${neighborScale})`;
+  });
+}
+
+function resetNeighbors() {
+  const boxes = grid.querySelectorAll('.box');
+  boxes.forEach(box => {
+    if (box !== activeBox) {
+      box.style.transition = 'transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+      box.style.transform = 'translate(0, 0) scale(1)';
+    }
+  });
+}
+
 function onPointerMove(e) {
   if (!activeBox || !dragState) return;
 
@@ -1266,6 +1317,10 @@ function onPointerMove(e) {
     // rotate → scale (stretch along X = drag direction) → rotate back, then translate
     activeBox.style.transform = `translate(${moveX}px, ${moveY}px) rotate(${angleDeg}deg) scale(${stretchAmount}, ${squashAmount}) rotate(${-angleDeg}deg)`;
 
+    // Cascade to neighbors
+    const activeIdx = parseInt(activeBox.dataset.index);
+    disturbNeighbors(activeIdx, tension, angle);
+
     // Haptic creak — starts after 20% of threshold
     const creakTension = Math.max(0, (dist - POP_THRESHOLD * 0.2)) / (POP_THRESHOLD * 0.8);
     if (creakTension > 0 && creakTension < 1) {
@@ -1277,6 +1332,9 @@ function onPointerMove(e) {
     // Pop the coin
     if (dist >= POP_THRESHOLD) {
       dragState.coinPopped = true;
+
+      // Reset neighbors with bounce-back
+      resetNeighbors();
 
       // Capture the current deformed transform as the animation start
       const currentTransform = activeBox.style.transform;
@@ -1706,6 +1764,9 @@ function transferCoins(sourceBox, targetBox) {
 
 function onPointerUp(e) {
   if (!activeBox) return;
+
+  // Reset neighbor boxes
+  resetNeighbors();
 
   // Kill zip loop immediately
   if (dragState) dragState.coinPhase = 'dead';
