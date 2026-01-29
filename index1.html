@@ -594,13 +594,17 @@
     background: rgba(72, 187, 120, 0.1);
   }
 
-  /* Sparkle trail behind dragged coin */
+  /* Sparkle trail behind dragged coin - pixelated style */
   .trail-spark {
     position: fixed;
     pointer-events: none;
     z-index: 99;
-    border-radius: 50%;
-    background: radial-gradient(circle, rgba(249, 229, 71, 0.9), rgba(241, 196, 15, 0) 70%);
+    border-radius: 0;
+    background: #f9e547;
+    image-rendering: pixelated;
+    box-shadow:
+      0 0 0 1px rgba(241, 196, 15, 0.6),
+      2px 2px 0 rgba(0, 0, 0, 0.15);
   }
 
   /* Ambient background particles */
@@ -1752,24 +1756,33 @@ function stopTrail() {
 function spawnTrailSpark(x, y) {
   const spark = document.createElement('div');
   spark.className = 'trail-spark';
-  const size = 5 + Math.random() * 12;
-  const spread = 20;
-  const dx = (Math.random() - 0.5) * spread;
-  const dy = (Math.random() - 0.5) * spread;
+
+  // Discrete pixel sizes: 3, 4, 5, or 6 px
+  const sizes = [3, 4, 5, 6];
+  const size = sizes[Math.floor(Math.random() * sizes.length)];
+
+  // Snap positions to grid for pixelated feel
+  const gridSize = 4;
+  const spread = 16;
+  const dx = Math.round((Math.random() - 0.5) * spread / gridSize) * gridSize;
+  const dy = Math.round((Math.random() - 0.5) * spread / gridSize) * gridSize;
+
   spark.style.width = `${size}px`;
   spark.style.height = `${size}px`;
-  spark.style.left = `${x - size / 2 + dx}px`;
-  spark.style.top = `${y - size / 2 + dy}px`;
+  spark.style.left = `${Math.round(x / 2) * 2 + dx}px`;
+  spark.style.top = `${Math.round(y / 2) * 2 + dy}px`;
   spark.style.opacity = '1';
   document.body.appendChild(spark);
 
-  const driftX = dx * 2 + (Math.random() - 0.5) * 16;
-  const driftY = dy * 2 + 10 + Math.random() * 16;
+  // Blocky drift movement
+  const driftX = Math.round((dx * 1.5 + (Math.random() - 0.5) * 12) / gridSize) * gridSize;
+  const driftY = Math.round((dy + 8 + Math.random() * 12) / gridSize) * gridSize;
+
   spark.animate([
-    { opacity: 1, transform: `scale(1) translate(0, 0)` },
-    { opacity: 0.6, transform: `scale(0.6) translate(${driftX * 0.5}px, ${driftY * 0.3}px)`, offset: 0.4 },
-    { opacity: 0, transform: `scale(0) translate(${driftX}px, ${driftY}px)` },
-  ], { duration: 400 + Math.random() * 300, easing: 'ease-out' }).onfinish = () => spark.remove();
+    { opacity: 1, transform: `translate(0, 0)` },
+    { opacity: 0.7, transform: `translate(${driftX * 0.5}px, ${driftY * 0.4}px)`, offset: 0.5 },
+    { opacity: 0, transform: `translate(${driftX}px, ${driftY}px)` },
+  ], { duration: 300 + Math.random() * 200, easing: 'steps(6)' }).onfinish = () => spark.remove();
 }
 
 // Hook trail into drag lifecycle
