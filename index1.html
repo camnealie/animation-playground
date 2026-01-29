@@ -456,8 +456,8 @@
 
   @keyframes popAtSource {
     0% { opacity: 0; transform: scale(0) rotate(-20deg); }
-    60% { opacity: 1; transform: scale(1.8) rotate(5deg); }
-    100% { opacity: 1; transform: scale(1) rotate(0deg); }
+    60% { opacity: 1; transform: scale(1.2) rotate(5deg); }
+    100% { opacity: 1; transform: scale(0.7) rotate(0deg); }
   }
 
   .coin.zipping {
@@ -1297,13 +1297,13 @@ function onPointerMove(e) {
       dragState.pendingFingerX = e.clientX;
       dragState.pendingFingerY = e.clientY;
 
-      // Place coin at box center, visible
+      // Place coin at box center, visible (smaller size)
       coinEl.className = 'coin';
       coinEl.style.transition = 'none';
       coinEl.style.left = `${bx - 20}px`;
       coinEl.style.top = `${by - 20}px`;
       coinEl.style.opacity = '1';
-      coinEl.style.transform = 'scale(1)';
+      coinEl.style.transform = 'scale(0.7)';
 
       // Lerp coin from current pos to finger over frames
       let coinX = bx;
@@ -1928,8 +1928,9 @@ amountInput.addEventListener('input', (e) => {
 
 // ── Coin Orbit Animation ──
 let orbitAngle = 0;
-const ORBIT_RADIUS = 20;
-const ORBIT_SPEED = 0.03; // radians per frame (slower, gentler orbit)
+const ORBIT_RADIUS = 16;
+const ORBIT_BASE_SPEED = 0.06; // faster base speed
+const COIN_SCALE = 0.7; // smaller coin while dragging
 let orbitRAF = null;
 
 function startOrbit() {
@@ -1941,7 +1942,9 @@ function startOrbit() {
       return;
     }
 
-    orbitAngle += ORBIT_SPEED;
+    // Variable speed - faster at top/bottom, slower at sides (like pendulum)
+    const speedVariation = 1 + Math.sin(orbitAngle * 2) * 0.5; // 0.5x to 1.5x speed
+    orbitAngle += ORBIT_BASE_SPEED * speedVariation;
 
     const centerX = dragState.pendingFingerX;
     const centerY = dragState.pendingFingerY;
@@ -1950,12 +1953,12 @@ function startOrbit() {
     const orbitX = centerX + Math.cos(orbitAngle) * ORBIT_RADIUS;
     const orbitY = centerY + Math.sin(orbitAngle) * ORBIT_RADIUS;
 
-    // Slight wobble in scale for liveliness
-    const wobble = 1 + Math.sin(orbitAngle * 2) * 0.05;
+    // Slight wobble in scale synced with speed changes
+    const wobble = COIN_SCALE * (1 + Math.sin(orbitAngle * 2) * 0.08);
 
     coinEl.style.left = `${orbitX - 20}px`;
     coinEl.style.top = `${orbitY - 20}px`;
-    coinEl.style.transform = `scale(${wobble}) rotate(${orbitAngle * 15}deg)`;
+    coinEl.style.transform = `scale(${wobble}) rotate(${orbitAngle * 20}deg)`;
 
     orbitRAF = requestAnimationFrame(tick);
   }
