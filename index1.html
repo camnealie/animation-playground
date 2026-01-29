@@ -1941,13 +1941,15 @@ amountInput.addEventListener('input', (e) => {
 
 // ── Coin Orbit Animation ──
 let orbitAngle = 0;
+let orbitTime = 0; // separate timer for speed variation
 const ORBIT_RADIUS = 16;
-const ORBIT_BASE_SPEED = 0.06; // faster base speed
+const ORBIT_BASE_SPEED = 0.08; // base speed
 const COIN_SCALE = 0.7; // smaller coin while dragging
 let orbitRAF = null;
 
 function startOrbit() {
   if (orbitRAF) return;
+  orbitTime = 0;
 
   function tick() {
     if (!dragState || !dragState.coinPopped || dragState.coinPhase !== 'free') {
@@ -1955,8 +1957,12 @@ function startOrbit() {
       return;
     }
 
-    // Variable speed - faster at top/bottom, slower at sides (like pendulum)
-    const speedVariation = 1 + Math.sin(orbitAngle * 2) * 0.5; // 0.5x to 1.5x speed
+    orbitTime += 1;
+
+    // Longer speed cycle: ~4 fast orbits, then slow, then fast again
+    // Using a slower sine wave for the speed variation
+    const speedCycle = Math.sin(orbitTime * 0.012); // completes cycle every ~520 frames (~8-9 sec)
+    const speedVariation = 1 + speedCycle * 0.7; // 0.3x to 1.7x speed
     orbitAngle += ORBIT_BASE_SPEED * speedVariation;
 
     const centerX = dragState.pendingFingerX;
@@ -1966,8 +1972,9 @@ function startOrbit() {
     const orbitX = centerX + Math.cos(orbitAngle) * ORBIT_RADIUS;
     const orbitY = centerY + Math.sin(orbitAngle) * ORBIT_RADIUS;
 
-    // Slight wobble in scale synced with speed changes
-    const wobble = COIN_SCALE * (1 + Math.sin(orbitAngle * 2) * 0.08);
+    // Wobble intensity tied to speed - more wobble when fast
+    const wobbleIntensity = 0.05 + speedVariation * 0.05;
+    const wobble = COIN_SCALE * (1 + Math.sin(orbitAngle * 3) * wobbleIntensity);
 
     coinEl.style.left = `${orbitX - 20}px`;
     coinEl.style.top = `${orbitY - 20}px`;
