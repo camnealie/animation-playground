@@ -1946,59 +1946,92 @@ amountInput.addEventListener('input', (e) => {
   e.target.value = val ? '$' + val : '';
 });
 
-// ── Coin Orbit Animation ──
-let orbitAngle = 0;
-let orbitTime = 0; // separate timer for speed variation
-const ORBIT_RADIUS = 16;
-const ORBIT_BASE_SPEED = 0.08; // base speed
-const COIN_SCALE = 0.7; // smaller coin while dragging
-let orbitRAF = null;
+// ── Coin Float Animation (gravity-based) ──
+const COIN_SCALE = 0.7;
+const FLOAT_GRAVITY = 0.15;      // pull toward finger
+const FLOAT_DAMPING = 0.94;      // velocity decay
+const FLOAT_MAX_DIST = 40;       // max distance from finger
+const FLOAT_WANDER = 0.3;        // random drift strength
+let floatRAF = null;
+let coinVx = 0;
+let coinVy = 0;
+let coinX = 0;
+let coinY = 0;
+let coinRotation = 0;
 
 function startOrbit() {
-  if (orbitRAF) return;
-  orbitTime = 0;
+  if (floatRAF) return;
+
+  // Initialize position near finger with random velocity
+  coinX = dragState.pendingFingerX;
+  coinY = dragState.pendingFingerY;
+  const angle = Math.random() * Math.PI * 2;
+  coinVx = Math.cos(angle) * 3;
+  coinVy = Math.sin(angle) * 3;
 
   function tick() {
     if (!dragState || !dragState.coinPopped || dragState.coinPhase !== 'free') {
-      orbitRAF = null;
+      floatRAF = null;
       return;
     }
 
-    orbitTime += 1;
+    const targetX = dragState.pendingFingerX;
+    const targetY = dragState.pendingFingerY;
 
-    // Longer speed cycle: ~4 fast orbits, then slow, then fast again
-    // Using a slower sine wave for the speed variation
-    const speedCycle = Math.sin(orbitTime * 0.012); // completes cycle every ~520 frames (~8-9 sec)
-    const speedVariation = 1 + speedCycle * 0.7; // 0.3x to 1.7x speed
-    orbitAngle += ORBIT_BASE_SPEED * speedVariation;
+    // Vector to finger
+    const dx = targetX - coinX;
+    const dy = targetY - coinY;
+    const dist = Math.sqrt(dx * dx + dy * dy);
 
-    const centerX = dragState.pendingFingerX;
-    const centerY = dragState.pendingFingerY;
+    // Gravity pull (stronger when further)
+    if (dist > 1) {
+      const pullStrength = FLOAT_GRAVITY * Math.min(dist / 20, 1.5);
+      coinVx += (dx / dist) * pullStrength;
+      coinVy += (dy / dist) * pullStrength;
+    }
 
-    // Orbit position
-    const orbitX = centerX + Math.cos(orbitAngle) * ORBIT_RADIUS;
-    const orbitY = centerY + Math.sin(orbitAngle) * ORBIT_RADIUS;
+    // Random wander for organic movement
+    coinVx += (Math.random() - 0.5) * FLOAT_WANDER;
+    coinVy += (Math.random() - 0.5) * FLOAT_WANDER;
 
-    // Wobble intensity tied to speed - more wobble when fast
-    const wobbleIntensity = 0.05 + speedVariation * 0.05;
-    const wobble = COIN_SCALE * (1 + Math.sin(orbitAngle * 3) * wobbleIntensity);
+    // Damping
+    coinVx *= FLOAT_DAMPING;
+    coinVy *= FLOAT_DAMPING;
 
-    coinEl.style.left = `${orbitX - 20}px`;
-    coinEl.style.top = `${orbitY - 20}px`;
-    coinEl.style.transform = `scale(${wobble}) rotate(${orbitAngle * 20}deg)`;
+    // Update position
+    coinX += coinVx;
+    coinY += coinVy;
 
-    orbitRAF = requestAnimationFrame(tick);
+    // Soft constraint - push back if too far from finger
+    if (dist > FLOAT_MAX_DIST) {
+      const pushBack = (dist - FLOAT_MAX_DIST) * 0.1;
+      coinX -= (coinX - targetX) / dist * pushBack;
+      coinY -= (coinY - targetY) / dist * pushBack;
+    }
+
+    // Rotation based on velocity
+    const speed = Math.sqrt(coinVx * coinVx + coinVy * coinVy);
+    coinRotation += speed * 3;
+
+    // Scale wobble based on speed
+    const wobble = COIN_SCALE * (1 + Math.sin(coinRotation * 0.1) * 0.08);
+
+    coinEl.style.left = `${coinX - 20}px`;
+    coinEl.style.top = `${coinY - 20}px`;
+    coinEl.style.transform = `scale(${wobble}) rotate(${coinRotation}deg)`;
+
+    floatRAF = requestAnimationFrame(tick);
   }
 
-  orbitRAF = requestAnimationFrame(tick);
+  floatRAF = requestAnimationFrame(tick);
 }
 
 function stopOrbit() {
-  if (orbitRAF) {
-    cancelAnimationFrame(orbitRAF);
-    orbitRAF = null;
+  if (floatRAF) {
+    cancelAnimationFrame(floatRAF);
+    floatRAF = null;
   }
-  orbitAngle = 0;
+  coinVx = coinVy = 0;
 }
 
 // Hook orbit into the coin phase transitions
