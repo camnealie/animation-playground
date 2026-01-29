@@ -78,24 +78,122 @@
   }
 
   .scrub-speed {
-    position: absolute;
-    left: 50%;
-    transform: translateX(-50%);
-    bottom: 100%;
-    margin-bottom: 8px;
-    background: rgba(0,0,0,0.8);
+    position: fixed;
+    background: rgba(0,0,0,0.85);
     color: #fff;
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 600;
-    padding: 4px 8px;
-    border-radius: 4px;
+    padding: 6px 10px;
+    border-radius: 6px;
     white-space: nowrap;
     opacity: 0;
     pointer-events: none;
     transition: opacity 0.15s ease;
+    z-index: 200;
   }
 
   .scrub-slider.dragging .scrub-speed {
+    opacity: 1;
+  }
+
+  /* Scrub hint - appears on first interaction */
+  .scrub-hint {
+    position: fixed;
+    background: rgba(0,0,0,0.9);
+    color: #fff;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 10px 14px;
+    border-radius: 10px;
+    white-space: nowrap;
+    pointer-events: none;
+    z-index: 201;
+    opacity: 0;
+    transform: translateX(-50%) translateY(8px);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .scrub-hint.visible {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+
+  .scrub-hint-arrow {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    font-size: 16px;
+    animation: bounceDown 1s ease-in-out infinite;
+  }
+
+  @keyframes bounceDown {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(4px); }
+  }
+
+  /* Speed zone indicator - shows current precision level */
+  .scrub-zones {
+    position: fixed;
+    right: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    pointer-events: none;
+    z-index: 198;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+  }
+
+  .scrub-slider.dragging ~ .scrub-zones {
+    opacity: 1;
+  }
+
+  .scrub-zone {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 10px;
+    font-weight: 600;
+    color: rgba(255,255,255,0.4);
+    transition: all 0.15s ease;
+    padding: 4px 8px;
+    border-radius: 4px;
+  }
+
+  .scrub-zone.active {
+    color: #fff;
+    background: rgba(255,255,255,0.1);
+  }
+
+  .scrub-zone-bar {
+    width: 24px;
+    height: 3px;
+    border-radius: 2px;
+    background: rgba(255,255,255,0.2);
+    transition: background 0.15s ease;
+  }
+
+  .scrub-zone.active .scrub-zone-bar {
+    background: #48bb78;
+  }
+
+  .scrub-zone:nth-child(1).active .scrub-zone-bar { background: #f6ad55; }
+  .scrub-zone:nth-child(2).active .scrub-zone-bar { background: #4fd1c5; }
+  .scrub-zone:nth-child(3).active .scrub-zone-bar { background: #63b3ed; }
+  .scrub-zone:nth-child(4).active .scrub-zone-bar { background: #b794f4; }
+
+  .scrub-tether {
+    position: fixed;
+    pointer-events: none;
+    z-index: 199;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+  }
+
+  .scrub-slider.dragging .scrub-tether {
     opacity: 1;
   }
 
@@ -105,6 +203,19 @@
     font-weight: 700;
     color: #fff;
     font-variant-numeric: tabular-nums;
+  }
+
+  .slider-tip {
+    font-size: 10px;
+    color: rgba(255,255,255,0.35);
+    text-align: center;
+    margin-top: -4px;
+    padding-bottom: 4px;
+    transition: opacity 0.3s ease;
+  }
+
+  .slider-tip.hidden {
+    opacity: 0;
   }
 
   .grid {
@@ -446,9 +557,23 @@
       <div class="scrub-fill" id="scrubFill"></div>
       <div class="scrub-thumb" id="scrubThumb"></div>
     </div>
-    <div class="scrub-speed" id="scrubSpeed">Full Speed</div>
   </div>
   <span class="slider-amount" id="sliderLabel">$5</span>
+</div>
+<div class="slider-tip" id="sliderTip">Drag down for precision</div>
+<svg class="scrub-tether" id="scrubTether" style="position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;">
+  <line id="scrubLine" stroke="rgba(255,255,255,0.3)" stroke-width="2" stroke-dasharray="4,4"/>
+</svg>
+<div class="scrub-speed" id="scrubSpeed">Full Speed</div>
+<div class="scrub-hint" id="scrubHint">
+  <span class="scrub-hint-arrow">&#8595;</span>
+  <span>Drag down for precision</span>
+</div>
+<div class="scrub-zones" id="scrubZones">
+  <div class="scrub-zone" data-zone="0"><span class="scrub-zone-bar"></span>Full</div>
+  <div class="scrub-zone" data-zone="1"><span class="scrub-zone-bar"></span>1/2</div>
+  <div class="scrub-zone" data-zone="2"><span class="scrub-zone-bar"></span>1/4</div>
+  <div class="scrub-zone" data-zone="3"><span class="scrub-zone-bar"></span>Fine</div>
 </div>
 <div class="grid" id="grid"></div>
 <div class="coin" id="coin">$</div>
@@ -591,10 +716,21 @@ const scrubSlider = document.getElementById('scrubSlider');
 const scrubFill = document.getElementById('scrubFill');
 const scrubThumb = document.getElementById('scrubThumb');
 const scrubSpeedEl = document.getElementById('scrubSpeed');
+const scrubTether = document.getElementById('scrubTether');
+const scrubLine = document.getElementById('scrubLine');
 const sliderLabel = document.getElementById('sliderLabel');
+const scrubHint = document.getElementById('scrubHint');
+const scrubZones = document.getElementById('scrubZones');
+const zoneEls = scrubZones.querySelectorAll('.scrub-zone');
+const sliderTip = document.getElementById('sliderTip');
 
 const SCRUB_MIN = 100;      // $1
 const SCRUB_MAX = 100000;   // $1000
+
+// Track if user has seen the hint
+let hasSeenHint = localStorage.getItem('scrubHintSeen') === 'true';
+let hintTimeout = null;
+let currentZoneIdx = 0;
 
 // Speed tiers based on vertical distance from slider
 const SCRUB_SPEEDS = [
@@ -614,12 +750,55 @@ function updateScrubUI() {
 }
 updateScrubUI();
 
+// If user has already seen the hint, hide the static tip
+if (hasSeenHint) {
+  sliderTip.classList.add('hidden');
+}
+
 function getScrubSpeed(vertDist) {
   const d = Math.abs(vertDist);
   for (let i = SCRUB_SPEEDS.length - 1; i >= 0; i--) {
-    if (d >= SCRUB_SPEEDS[i].dist) return SCRUB_SPEEDS[i];
+    if (d >= SCRUB_SPEEDS[i].dist) return { ...SCRUB_SPEEDS[i], idx: i };
   }
-  return SCRUB_SPEEDS[0];
+  return { ...SCRUB_SPEEDS[0], idx: 0 };
+}
+
+function updateZoneIndicator(zoneIdx) {
+  if (zoneIdx === currentZoneIdx) return;
+  currentZoneIdx = zoneIdx;
+  zoneEls.forEach((el, i) => {
+    el.classList.toggle('active', i === zoneIdx);
+  });
+}
+
+function showHint(x, y) {
+  if (hasSeenHint) return;
+  scrubHint.style.left = `${x}px`;
+  scrubHint.style.top = `${y + 50}px`;
+  scrubHint.classList.add('visible');
+}
+
+function hideHint() {
+  scrubHint.classList.remove('visible');
+  if (!hasSeenHint) {
+    hasSeenHint = true;
+    localStorage.setItem('scrubHintSeen', 'true');
+    // Also hide the static tip permanently
+    sliderTip.classList.add('hidden');
+  }
+}
+
+function positionZones(originY) {
+  // Position zone indicator to the right, aligned with finger origin
+  scrubZones.style.top = `${originY - 30}px`;
+}
+
+function getThumbCenter() {
+  const thumbRect = scrubThumb.getBoundingClientRect();
+  return {
+    x: thumbRect.left + thumbRect.width / 2,
+    y: thumbRect.top + thumbRect.height / 2
+  };
 }
 
 scrubSlider.addEventListener('pointerdown', (e) => {
@@ -627,54 +806,112 @@ scrubSlider.addEventListener('pointerdown', (e) => {
   scrubSlider.classList.add('dragging');
 
   const rect = scrubSlider.getBoundingClientRect();
-  const startX = e.clientX;
-  const startY = e.clientY;
-  const startValue = TRANSFER_CENTS;
   const trackWidth = rect.width;
   const valueRange = SCRUB_MAX - SCRUB_MIN;
 
-  scrubState = { startX, startY, startValue, trackWidth, valueRange, rect };
-
-  // Initial position click
-  const clickPct = (e.clientX - rect.left) / trackWidth;
+  // Jump to click position
+  const clickPct = Math.max(0, Math.min(1, (e.clientX - rect.left) / trackWidth));
   TRANSFER_CENTS = Math.round((SCRUB_MIN + clickPct * valueRange) / 100) * 100;
   TRANSFER_CENTS = Math.max(SCRUB_MIN, Math.min(SCRUB_MAX, TRANSFER_CENTS));
-  scrubState.startValue = TRANSFER_CENTS;
-  scrubState.startX = e.clientX;
   updateScrubUI();
+
+  scrubState = {
+    lastX: e.clientX,
+    lastY: e.clientY,
+    originY: e.clientY,  // where they first touched (for measuring vertical distance)
+    trackWidth,
+    valueRange,
+    rect
+  };
+
+  // Show hint after a short delay if user hasn't seen it
+  if (!hasSeenHint) {
+    hintTimeout = setTimeout(() => {
+      showHint(e.clientX, e.clientY);
+    }, 400);
+  }
+
+  // Position zone indicator
+  positionZones(e.clientY);
+  updateZoneIndicator(0);
+
+  // Hide static tip during interaction
+  if (!hasSeenHint) {
+    sliderTip.style.opacity = '0';
+  }
 });
 
 window.addEventListener('pointermove', (e) => {
   if (!scrubState) return;
 
-  const dx = e.clientX - scrubState.startX;
-  const dy = e.clientY - scrubState.startY;
+  // Incremental delta since last move
+  const dx = e.clientX - scrubState.lastX;
+  const vertDist = e.clientY - scrubState.originY;
 
-  const speed = getScrubSpeed(dy);
-  scrubSpeedEl.textContent = speed.label;
+  const speed = getScrubSpeed(vertDist);
+  scrubSpeedEl.textContent = `${speed.label} · ${formatAmount(TRANSFER_CENTS)}`;
 
-  // Scale horizontal movement by speed rate
-  const scaledDx = dx * speed.rate;
-  const valueDelta = (scaledDx / scrubState.trackWidth) * scrubState.valueRange;
+  // Position the speed label near the finger
+  scrubSpeedEl.style.left = `${e.clientX}px`;
+  scrubSpeedEl.style.top = `${e.clientY - 40}px`;
+  scrubSpeedEl.style.transform = 'translateX(-50%)';
 
-  let newValue = scrubState.startValue + valueDelta;
+  // Draw tether line from thumb to finger
+  const thumb = getThumbCenter();
+  scrubLine.setAttribute('x1', thumb.x);
+  scrubLine.setAttribute('y1', thumb.y);
+  scrubLine.setAttribute('x2', e.clientX);
+  scrubLine.setAttribute('y2', e.clientY);
+
+  // Update zone indicator
+  updateZoneIndicator(speed.idx);
+
+  // Hide hint once user drags down (they've discovered the feature)
+  if (vertDist > 30) {
+    clearTimeout(hintTimeout);
+    hideHint();
+  }
+
+  // Apply incremental change scaled by speed
+  const valueDelta = (dx / scrubState.trackWidth) * scrubState.valueRange * speed.rate;
+  let newValue = TRANSFER_CENTS + valueDelta;
   newValue = Math.round(newValue / 100) * 100;
   newValue = Math.max(SCRUB_MIN, Math.min(SCRUB_MAX, newValue));
 
   TRANSFER_CENTS = newValue;
   updateScrubUI();
+
+  // Update last position for next frame
+  scrubState.lastX = e.clientX;
+  scrubState.lastY = e.clientY;
 });
 
 window.addEventListener('pointerup', () => {
   if (!scrubState) return;
   scrubSlider.classList.remove('dragging');
   scrubState = null;
+  clearTimeout(hintTimeout);
+  hideHint();
+  // Reset zones
+  zoneEls.forEach(el => el.classList.remove('active'));
+  currentZoneIdx = -1;
+  // Restore tip if user hasn't learned feature
+  if (!hasSeenHint) {
+    sliderTip.style.opacity = '';
+  }
 });
 
 window.addEventListener('pointercancel', () => {
   if (!scrubState) return;
   scrubSlider.classList.remove('dragging');
   scrubState = null;
+  clearTimeout(hintTimeout);
+  hideHint();
+  zoneEls.forEach(el => el.classList.remove('active'));
+  currentZoneIdx = -1;
+  if (!hasSeenHint) {
+    sliderTip.style.opacity = '';
+  }
 });
 
 // Pointer events
