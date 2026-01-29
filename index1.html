@@ -551,7 +551,7 @@
   .amount-badge {
     position: absolute;
     pointer-events: none;
-    z-index: 102;
+    z-index: 150;
     font-size: 14px;
     font-weight: 700;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -1451,10 +1451,12 @@ function spawnAmountBadge(box, text, type) {
   badge.textContent = text;
   badge.style.position = 'fixed';
 
-  // Position at top center of envelope
+  // Position centered over the icon
   const rect = box.getBoundingClientRect();
-  badge.style.left = `${rect.left + rect.width / 2}px`;
-  badge.style.top = `${rect.top}px`;
+  const icon = box.querySelector('.box-icon');
+  const iconRect = icon ? icon.getBoundingClientRect() : rect;
+  badge.style.left = `${iconRect.left + iconRect.width / 2}px`;
+  badge.style.top = `${iconRect.top + iconRect.height / 2}px`;
 
   document.body.appendChild(badge);
   badge.addEventListener('animationend', () => badge.remove());
