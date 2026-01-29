@@ -763,10 +763,10 @@
     background: rgba(255,255,255,0.15);
   }
 
-  /* Transfer coins */
+  /* Transfer coins - matches drag coin size */
   .transfer-coin {
-    width: 32px;
-    height: 32px;
+    width: 28px;
+    height: 28px;
     border-radius: 50%;
     background: radial-gradient(circle at 35% 35%, #f9e547, #f1c40f 40%, #d4a017 100%);
     box-shadow:
@@ -779,7 +779,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 14px;
+    font-size: 12px;
     font-weight: 900;
     color: #b8860b;
     font-family: -apple-system, sans-serif;
@@ -1621,10 +1621,17 @@ function transferCoins(sourceBox, targetBox) {
       const approachScale = Math.min(1, dist / 60);
       const renderScale = p.scale * (0.3 + approachScale * 0.7);
 
-      p.el.style.left = `${p.x - 16}px`;
-      p.el.style.top = `${p.y - 16}px`;
+      p.el.style.left = `${p.x - 14}px`;
+      p.el.style.top = `${p.y - 14}px`;
       p.el.style.transform = `scale(${renderScale}) rotate(${p.rotation}deg)`;
       p.el.style.opacity = Math.min(1, dist / 20);
+
+      // Spawn trail sparks (every 3rd frame, only when moving fast enough)
+      p.trailFrame = (p.trailFrame || 0) + 1;
+      const speed = Math.sqrt(p.vx * p.vx + p.vy * p.vy);
+      if (p.trailFrame % 3 === 0 && speed > 2 && dist > 50) {
+        spawnTrailSpark(p.x, p.y);
+      }
 
       // Absorbed?
       if (dist < ABSORB_RADIUS) {
