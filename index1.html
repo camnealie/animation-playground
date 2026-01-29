@@ -569,19 +569,19 @@
   .amount-badge.minus {
     color: #e53e3e;
     background: rgba(229, 62, 62, 0.1);
-    animation: floatAway 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    animation: floatAway 1.2s ease-out forwards;
   }
 
   .amount-badge.plus {
     color: #48bb78;
     background: rgba(72, 187, 120, 0.1);
-    animation: floatAway 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    animation: floatAway 1.2s ease-out forwards;
   }
 
   @keyframes floatAway {
     0% { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
-    20% { opacity: 1; transform: translateX(-50%) translateY(-8px) scale(1.05); }
-    100% { opacity: 0; transform: translateX(-50%) translateY(-28px) scale(0.9); }
+    70% { opacity: 0.7; transform: translateX(-50%) translateY(-30px) scale(1); }
+    100% { opacity: 0; transform: translateX(-50%) translateY(-45px) scale(0.95); }
   }
 
   /* Inline delta badge shown during preview */
@@ -1445,31 +1445,16 @@ function restorePreview(box) {
   clearDeltaBadge(env.amountEl);
 }
 
-// Get delta badge rect before removing it (for smooth transition to float badge)
-function getDeltaBadgeRect(amountEl) {
-  const badge = amountEl.querySelector('.delta-badge');
-  if (badge) {
-    return badge.getBoundingClientRect();
-  }
-  return null;
-}
-
-function spawnAmountBadge(box, text, type, sourceRect) {
+function spawnAmountBadge(box, text, type) {
   const badge = document.createElement('div');
   badge.className = `amount-badge ${type}`;
   badge.textContent = text;
   badge.style.position = 'fixed';
 
-  // Position at the same location as the delta badge was
-  if (sourceRect) {
-    badge.style.left = `${sourceRect.left + sourceRect.width / 2}px`;
-    badge.style.top = `${sourceRect.top}px`;
-  } else {
-    // Fallback to box center
-    const rect = box.getBoundingClientRect();
-    badge.style.left = `${rect.left + rect.width / 2}px`;
-    badge.style.top = `${rect.top + rect.height / 2}px`;
-  }
+  // Position at top center of envelope
+  const rect = box.getBoundingClientRect();
+  badge.style.left = `${rect.left + rect.width / 2}px`;
+  badge.style.top = `${rect.top}px`;
 
   document.body.appendChild(badge);
   badge.addEventListener('animationend', () => badge.remove());
@@ -1525,14 +1510,10 @@ function transferCoins(sourceBox, targetBox) {
 
   if (navigator.vibrate) navigator.vibrate(20);
 
-  // Capture delta badge positions BEFORE they're removed
-  const sourceDeltaRect = getDeltaBadgeRect(sourceEnv.amountEl);
-  const targetDeltaRect = getDeltaBadgeRect(targetEnv.amountEl);
-
-  // Floating +/- badges - spawn at same position as delta badges
+  // Floating +/- badges at top of envelopes
   const badgeText = formatAmount(transferAmount);
-  spawnAmountBadge(sourceBox, `-${badgeText}`, 'minus', sourceDeltaRect);
-  spawnAmountBadge(targetBox, `+${badgeText}`, 'plus', targetDeltaRect);
+  spawnAmountBadge(sourceBox, `-${badgeText}`, 'minus');
+  spawnAmountBadge(targetBox, `+${badgeText}`, 'plus');
 
   // Flash source amount on transfer start
   sourceEnv.amountEl.classList.remove('flash-up', 'flash-down');
