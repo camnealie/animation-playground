@@ -381,11 +381,15 @@
   }
 
   .box-label {
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 500;
     color: #4a5568;
     text-align: center;
-    line-height: 1.2;
+    line-height: 1.25;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    max-width: 100%;
+    padding: 0 4px;
   }
 
   .box-amount {
@@ -882,7 +886,7 @@ const envelopesDef = [
   { icon: 'account_balance', label: 'Income', color: '#7c6fbd', budgetRange: [80000, 200000] },
   { icon: 'autorenew', label: 'Recurring', color: '#48bb78', budgetRange: [50000, 120000] },
   { icon: 'directions_car', label: 'Transportation', color: '#f687b3', budgetRange: [20000, 60000] },
-  { icon: 'spa', label: 'Appearance/Pha...', color: '#68d391', budgetRange: [15000, 40000] },
+  { icon: 'spa', label: 'Appearance', color: '#68d391', budgetRange: [15000, 40000] },
   { icon: 'home', label: 'Household', color: '#4299e1', budgetRange: [80000, 200000] },
   { icon: 'restaurant', label: 'Dining Out', color: '#9f7aea', budgetRange: [20000, 60000] },
   { icon: 'shopping_cart', label: 'Groceries', color: '#fc8181', budgetRange: [30000, 80000] },
