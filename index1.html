@@ -257,35 +257,47 @@
   .box-icon {
     width: 48px;
     height: 48px;
-    border-radius: 14px;
+    border-radius: 12px;
     display: flex;
     align-items: center;
     justify-content: center;
     color: #fff;
     position: relative;
     overflow: hidden;
-    /* Gem-like 3D effect */
+    /* Gem-like 3D faceted effect */
     box-shadow:
-      inset 0 2px 4px rgba(255,255,255,0.4),
-      inset 0 -2px 4px rgba(0,0,0,0.2),
-      0 2px 8px rgba(0,0,0,0.15);
+      inset 0 3px 6px rgba(255,255,255,0.5),
+      inset 0 -3px 6px rgba(0,0,0,0.25),
+      inset 3px 0 6px rgba(255,255,255,0.1),
+      inset -3px 0 6px rgba(0,0,0,0.1),
+      0 4px 12px rgba(0,0,0,0.2),
+      0 0 20px rgba(255,255,255,0.05);
+    /* Slight perspective tilt for 3D feel */
+    transform-style: preserve-3d;
   }
 
-  /* Gem shine effect */
+  /* Facet highlight overlay */
+  .box-icon .material-symbols-rounded {
+    position: relative;
+    z-index: 2;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+  }
+
+  /* Gem top-left highlight facet */
   .box-icon::before {
     content: '';
     position: absolute;
-    top: -50%;
-    left: -50%;
-    width: 100%;
-    height: 100%;
+    top: 0;
+    left: 0;
+    right: 50%;
+    bottom: 50%;
     background: linear-gradient(
       135deg,
-      rgba(255,255,255,0.5) 0%,
-      rgba(255,255,255,0.2) 30%,
-      transparent 50%
+      rgba(255,255,255,0.45) 0%,
+      rgba(255,255,255,0.15) 50%,
+      transparent 100%
     );
-    transform: rotate(0deg);
+    border-radius: 12px 0 0 0;
     pointer-events: none;
   }
 
@@ -295,36 +307,60 @@
     position: absolute;
     top: 0;
     left: -100%;
-    width: 60%;
+    width: 50%;
     height: 100%;
     background: linear-gradient(
       90deg,
       transparent,
-      rgba(255,255,255,0.4),
+      rgba(255,255,255,0.5),
       transparent
     );
-    transform: skewX(-20deg);
-    animation: gemShine 3s ease-in-out infinite;
+    transform: skewX(-15deg);
+    animation: gemShine 15s ease-in-out infinite;
     pointer-events: none;
   }
 
   @keyframes gemShine {
     0%, 100% { left: -100%; opacity: 0; }
-    10% { opacity: 1; }
-    40% { left: 150%; opacity: 1; }
-    50%, 100% { left: 150%; opacity: 0; }
+    2% { opacity: 0.8; }
+    8% { left: 150%; opacity: 0.8; }
+    10%, 100% { left: 150%; opacity: 0; }
   }
 
-  /* Stagger shine animation per card */
+  /* Stagger shine animation per card - longer cycle, more spread out */
   .cell:nth-child(1) .box-icon::after { animation-delay: 0s; }
-  .cell:nth-child(2) .box-icon::after { animation-delay: 0.4s; }
-  .cell:nth-child(3) .box-icon::after { animation-delay: 0.8s; }
-  .cell:nth-child(4) .box-icon::after { animation-delay: 1.2s; }
-  .cell:nth-child(5) .box-icon::after { animation-delay: 1.6s; }
-  .cell:nth-child(6) .box-icon::after { animation-delay: 2.0s; }
-  .cell:nth-child(7) .box-icon::after { animation-delay: 2.4s; }
-  .cell:nth-child(8) .box-icon::after { animation-delay: 2.8s; }
-  .cell:nth-child(9) .box-icon::after { animation-delay: 0.2s; }
+  .cell:nth-child(2) .box-icon::after { animation-delay: 1.5s; }
+  .cell:nth-child(3) .box-icon::after { animation-delay: 3s; }
+  .cell:nth-child(4) .box-icon::after { animation-delay: 4.5s; }
+  .cell:nth-child(5) .box-icon::after { animation-delay: 6s; }
+  .cell:nth-child(6) .box-icon::after { animation-delay: 7.5s; }
+  .cell:nth-child(7) .box-icon::after { animation-delay: 9s; }
+  .cell:nth-child(8) .box-icon::after { animation-delay: 10.5s; }
+  .cell:nth-child(9) .box-icon::after { animation-delay: 12s; }
+
+  /* Gem idle animation - subtle float and wobble */
+  @keyframes gemFloat {
+    0%, 100% {
+      transform: translateY(0) rotate(0deg) scale(1);
+    }
+    33% {
+      transform: translateY(-2px) rotate(0.8deg) scale(1.015);
+    }
+    66% {
+      transform: translateY(-1px) rotate(-0.5deg) scale(1.01);
+    }
+  }
+
+  /* Apply float animation to icons with staggered delays */
+  .cell:nth-child(1) .box-icon { animation: gemFloat 5s ease-in-out infinite; animation-delay: 0s; }
+  .cell:nth-child(2) .box-icon { animation: gemFloat 5.2s ease-in-out infinite; animation-delay: 0.4s; }
+  .cell:nth-child(3) .box-icon { animation: gemFloat 4.8s ease-in-out infinite; animation-delay: 0.8s; }
+  .cell:nth-child(4) .box-icon { animation: gemFloat 5.1s ease-in-out infinite; animation-delay: 1.2s; }
+  .cell:nth-child(5) .box-icon { animation: gemFloat 4.9s ease-in-out infinite; animation-delay: 1.6s; }
+  .cell:nth-child(6) .box-icon { animation: gemFloat 5.3s ease-in-out infinite; animation-delay: 2.0s; }
+  .cell:nth-child(7) .box-icon { animation: gemFloat 5s ease-in-out infinite; animation-delay: 2.4s; }
+  .cell:nth-child(8) .box-icon { animation: gemFloat 4.7s ease-in-out infinite; animation-delay: 2.8s; }
+  .cell:nth-child(9) .box-icon { animation: gemFloat 5.2s ease-in-out infinite; animation-delay: 0.2s; }
 
   .box-icon .material-symbols-rounded {
     font-family: 'Material Symbols Rounded';
