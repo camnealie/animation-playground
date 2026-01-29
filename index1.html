@@ -300,7 +300,7 @@
     pointer-events: none;
   }
 
-  /* Animated sparkle highlight */
+  /* Animated sparkle highlight - triggered by JS for random timing */
   .box-icon::after {
     content: '';
     position: absolute;
@@ -315,27 +315,21 @@
       transparent
     );
     transform: skewX(-15deg);
-    animation: gemShine 15s ease-in-out infinite;
     pointer-events: none;
+    opacity: 0;
+    transition: none;
+  }
+
+  .box-icon.shining::after {
+    animation: gemShine 0.6s ease-out forwards;
   }
 
   @keyframes gemShine {
-    0%, 100% { left: -100%; opacity: 0; }
-    2% { opacity: 0.8; }
-    8% { left: 150%; opacity: 0.8; }
-    10%, 100% { left: 150%; opacity: 0; }
+    0% { left: -50%; opacity: 0; }
+    20% { opacity: 0.8; }
+    80% { opacity: 0.8; }
+    100% { left: 150%; opacity: 0; }
   }
-
-  /* Stagger shine animation per card - longer cycle, more spread out */
-  .cell:nth-child(1) .box-icon::after { animation-delay: 0s; }
-  .cell:nth-child(2) .box-icon::after { animation-delay: 1.5s; }
-  .cell:nth-child(3) .box-icon::after { animation-delay: 3s; }
-  .cell:nth-child(4) .box-icon::after { animation-delay: 4.5s; }
-  .cell:nth-child(5) .box-icon::after { animation-delay: 6s; }
-  .cell:nth-child(6) .box-icon::after { animation-delay: 7.5s; }
-  .cell:nth-child(7) .box-icon::after { animation-delay: 9s; }
-  .cell:nth-child(8) .box-icon::after { animation-delay: 10.5s; }
-  .cell:nth-child(9) .box-icon::after { animation-delay: 12s; }
 
   /* Gem idle animation - subtle float and wobble */
   @keyframes gemFloat {
@@ -1327,12 +1321,14 @@ function onPointerMove(e) {
         coinEl.style.left = `${coinX - 20}px`;
         coinEl.style.top = `${coinY - 20}px`;
 
-        // Close enough? Switch to free
+        // Close enough? Switch to free and start orbit
         const d = Math.sqrt((targetX - coinX) ** 2 + (targetY - coinY) ** 2);
         if (d < 2) {
           coinEl.style.left = `${targetX - 20}px`;
           coinEl.style.top = `${targetY - 20}px`;
           dragState.coinPhase = 'free';
+          // Start orbit immediately (defined later in script)
+          if (typeof startOrbit === 'function') startOrbit();
           return;
         }
 
@@ -1827,6 +1823,29 @@ for (let i = 0; i < 12; i++) {
   setTimeout(spawnAmbientParticle, Math.random() * 4000);
 }
 setInterval(spawnAmbientParticle, 800);
+
+// ── Random Gem Shine ──
+const gemIcons = document.querySelectorAll('.box-icon');
+
+function triggerRandomShine() {
+  // Pick a random gem
+  const gem = gemIcons[Math.floor(Math.random() * gemIcons.length)];
+
+  // Remove class first to allow re-triggering
+  gem.classList.remove('shining');
+  void gem.offsetWidth; // Force reflow
+  gem.classList.add('shining');
+
+  // Remove class after animation completes
+  setTimeout(() => gem.classList.remove('shining'), 600);
+
+  // Schedule next shine at random interval (3-12 seconds)
+  const nextDelay = 3000 + Math.random() * 9000;
+  setTimeout(triggerRandomShine, nextDelay);
+}
+
+// Start the random shine cycle after initial delay
+setTimeout(triggerRandomShine, 1000 + Math.random() * 2000);
 
 // ── Amount Edit Modal ──
 const amountModal = document.getElementById('amountModal');
