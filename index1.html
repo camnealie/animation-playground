@@ -1261,8 +1261,8 @@ function triggerPondRipple(targetIdx) {
     const dy = row - targetRow;
     const dist = Math.sqrt(dx * dx + dy * dy);
 
-    // Delay based on distance - wave spreads outward
-    const delay = dist * 80;
+    // Delay based on distance - wave spreads outward slowly
+    const delay = dist * 150;
 
     // Intensity diminishes with distance
     const intensity = Math.max(0, 1 - dist * 0.25);
