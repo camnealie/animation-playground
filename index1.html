@@ -558,30 +558,26 @@
     border-radius: 8px;
   }
 
+  .amount-badge {
+    font-size: 11px;
+  }
+
   .amount-badge.minus {
     color: #e53e3e;
     background: rgba(229, 62, 62, 0.1);
-    animation: floatUp 0.9s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    animation: floatAway 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   }
 
   .amount-badge.plus {
     color: #48bb78;
     background: rgba(72, 187, 120, 0.1);
-    animation: floatDown 0.9s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    animation: floatAway 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   }
 
-  @keyframes floatUp {
-    0% { opacity: 1; transform: translateY(0) scale(1); }
-    15% { opacity: 1; transform: translateY(-6px) scale(1.15); }
-    50% { opacity: 1; transform: translateY(-20px) scale(1); }
-    100% { opacity: 0; transform: translateY(-36px) scale(0.85); }
-  }
-
-  @keyframes floatDown {
-    0% { opacity: 1; transform: translateY(0) scale(1); }
-    15% { opacity: 1; transform: translateY(6px) scale(1.15); }
-    50% { opacity: 1; transform: translateY(16px) scale(1); }
-    100% { opacity: 0; transform: translateY(28px) scale(0.85); }
+  @keyframes floatAway {
+    0% { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
+    20% { opacity: 1; transform: translateX(-50%) translateY(-8px) scale(1.05); }
+    100% { opacity: 0; transform: translateX(-50%) translateY(-28px) scale(0.9); }
   }
 
   /* Inline delta badge shown during preview */
@@ -1458,13 +1454,11 @@ function spawnAmountBadge(box, text, type, sourceRect) {
   if (sourceRect) {
     badge.style.left = `${sourceRect.left + sourceRect.width / 2}px`;
     badge.style.top = `${sourceRect.top}px`;
-    badge.style.transform = 'translateX(-50%)';
   } else {
     // Fallback to box center
     const rect = box.getBoundingClientRect();
     badge.style.left = `${rect.left + rect.width / 2}px`;
     badge.style.top = `${rect.top + rect.height / 2}px`;
-    badge.style.transform = 'translateX(-50%)';
   }
 
   document.body.appendChild(badge);
