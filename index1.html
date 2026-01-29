@@ -1571,9 +1571,6 @@ function transferCoins(sourceBox, targetBox) {
 
   if (navigator.vibrate) navigator.vibrate(20);
 
-  // Trigger pond ripple from target - single wave spreading out
-  triggerPondRipple(targetIdx);
-
   // Capture delta badge positions BEFORE they're removed
   const sourceDeltaRect = getDeltaBadgeRect(sourceEnv.amountEl);
   const targetDeltaRect = getDeltaBadgeRect(targetEnv.amountEl);
@@ -1724,6 +1721,11 @@ function transferCoins(sourceBox, targetBox) {
         ], { duration: 200, easing: 'cubic-bezier(0.175, 0.885, 0.32, 1.275)' });
 
         if (navigator.vibrate) navigator.vibrate(8);
+
+        // Trigger pond ripple on first coin landing
+        if (landed === 1) {
+          triggerPondRipple(targetIdx);
+        }
 
         if (landed === COIN_COUNT) {
           // Commit final target value
