@@ -344,6 +344,17 @@
     }
   }
 
+  /* 3D flip animation - like a game pickup */
+  .box-icon.flipping {
+    animation: gemFlip 0.8s ease-in-out;
+  }
+
+  @keyframes gemFlip {
+    0% { transform: perspective(200px) rotateY(0deg); }
+    50% { transform: perspective(200px) rotateY(180deg) scale(1.1); }
+    100% { transform: perspective(200px) rotateY(360deg); }
+  }
+
   /* Apply float animation to icons with staggered delays */
   .cell:nth-child(1) .box-icon { animation: gemFloat 5s ease-in-out infinite; animation-delay: 0s; }
   .cell:nth-child(2) .box-icon { animation: gemFloat 5.2s ease-in-out infinite; animation-delay: 0.4s; }
@@ -1866,6 +1877,30 @@ function triggerRandomShine() {
 
 // Start the random shine cycle after initial delay
 setTimeout(triggerRandomShine, 1000 + Math.random() * 2000);
+
+// ── Random Gem Flip (3D rotate) ──
+function triggerRandomFlip() {
+  // Pick a random gem
+  const gem = gemIcons[Math.floor(Math.random() * gemIcons.length)];
+
+  // Don't flip if already flipping
+  if (gem.classList.contains('flipping')) {
+    setTimeout(triggerRandomFlip, 2000);
+    return;
+  }
+
+  gem.classList.add('flipping');
+
+  // Remove class after animation
+  setTimeout(() => gem.classList.remove('flipping'), 800);
+
+  // Schedule next flip at random interval (8-20 seconds - rare)
+  const nextDelay = 8000 + Math.random() * 12000;
+  setTimeout(triggerRandomFlip, nextDelay);
+}
+
+// Start the random flip cycle after longer initial delay
+setTimeout(triggerRandomFlip, 4000 + Math.random() * 3000);
 
 // ── Amount Edit Modal ──
 const amountModal = document.getElementById('amountModal');
