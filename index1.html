@@ -1244,65 +1244,49 @@ function spawnBurst(cx, cy) {
   }
 }
 
-// Cascade ripple when coin lands in envelope
-function triggerLandingCascade(targetIdx, intensity) {
+// Pond ripple effect - single wave spreading from target
+function triggerPondRipple(targetIdx) {
   const boxes = grid.querySelectorAll('.box');
-  const row = Math.floor(targetIdx / GRID_SIZE);
-  const col = targetIdx % GRID_SIZE;
+  const targetRow = Math.floor(targetIdx / GRID_SIZE);
+  const targetCol = targetIdx % GRID_SIZE;
 
-  // Ripple outward - first ring (direct neighbors), then second ring
-  const rings = [
-    // Ring 1: direct neighbors (up, down, left, right)
-    [
-      { r: row - 1, c: col, delay: 0 },
-      { r: row + 1, c: col, delay: 0 },
-      { r: row, c: col - 1, delay: 0 },
-      { r: row, c: col + 1, delay: 0 },
-    ],
-    // Ring 2: corners and further out
-    [
-      { r: row - 1, c: col - 1, delay: 60 },
-      { r: row - 1, c: col + 1, delay: 60 },
-      { r: row + 1, c: col - 1, delay: 60 },
-      { r: row + 1, c: col + 1, delay: 60 },
-      { r: row - 2, c: col, delay: 80 },
-      { r: row + 2, c: col, delay: 80 },
-      { r: row, c: col - 2, delay: 80 },
-      { r: row, c: col + 2, delay: 80 },
-    ],
-  ];
+  boxes.forEach((box, idx) => {
+    if (idx === targetIdx) return; // skip the target itself
 
-  rings.forEach((ring, ringIdx) => {
-    const ringIntensity = intensity * (ringIdx === 0 ? 0.6 : 0.3);
+    const row = Math.floor(idx / GRID_SIZE);
+    const col = idx % GRID_SIZE;
 
-    ring.forEach(n => {
-      if (n.r < 0 || n.r >= GRID_SIZE || n.c < 0 || n.c >= GRID_SIZE) return;
-      const idx = n.r * GRID_SIZE + n.c;
-      if (idx === targetIdx) return;
-      const box = boxes[idx];
-      if (!box) return;
+    // Distance from target (Manhattan for grid feel, or Euclidean)
+    const dx = col - targetCol;
+    const dy = row - targetRow;
+    const dist = Math.sqrt(dx * dx + dy * dy);
 
-      // Direction from target to neighbor
-      const dirX = n.c - col;
-      const dirY = n.r - row;
-      const dist = Math.sqrt(dirX * dirX + dirY * dirY);
+    // Delay based on distance - wave spreads outward
+    const delay = dist * 80;
 
+    // Intensity diminishes with distance
+    const intensity = Math.max(0, 1 - dist * 0.25);
+    if (intensity <= 0) return;
+
+    setTimeout(() => {
+      // Direction away from target
+      const dirX = dx / dist;
+      const dirY = dy / dist;
+
+      // Small bump outward
+      const bumpX = dirX * intensity * 5;
+      const bumpY = dirY * intensity * 5;
+      const bumpScale = 1 + intensity * 0.06;
+
+      box.style.transition = 'transform 0.12s ease-out';
+      box.style.transform = `translate(${bumpX}px, ${bumpY}px) scale(${bumpScale})`;
+
+      // Return to rest
       setTimeout(() => {
-        // Push away then bounce back
-        const pushX = (dirX / dist) * ringIntensity * 6;
-        const pushY = (dirY / dist) * ringIntensity * 6;
-        const scale = 1 + ringIntensity * 0.08;
-
-        box.style.transition = 'transform 0.1s ease-out';
-        box.style.transform = `translate(${pushX}px, ${pushY}px) scale(${scale})`;
-
-        // Bounce back
-        setTimeout(() => {
-          box.style.transition = 'transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
-          box.style.transform = 'translate(0, 0) scale(1)';
-        }, 100);
-      }, n.delay);
-    });
+        box.style.transition = 'transform 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+        box.style.transform = 'translate(0, 0) scale(1)';
+      }, 120);
+    }, delay);
   });
 }
 
@@ -1587,6 +1571,9 @@ function transferCoins(sourceBox, targetBox) {
 
   if (navigator.vibrate) navigator.vibrate(20);
 
+  // Trigger pond ripple from target - single wave spreading out
+  triggerPondRipple(targetIdx);
+
   // Capture delta badge positions BEFORE they're removed
   const sourceDeltaRect = getDeltaBadgeRect(sourceEnv.amountEl);
   const targetDeltaRect = getDeltaBadgeRect(targetEnv.amountEl);
@@ -1735,10 +1722,6 @@ function transferCoins(sourceBox, targetBox) {
           { transform: `scale(${1.04 + (landed / COIN_COUNT) * 0.08})` },
           { transform: 'scale(1)' },
         ], { duration: 200, easing: 'cubic-bezier(0.175, 0.885, 0.32, 1.275)' });
-
-        // Cascade ripple to neighbors
-        const cascadeIntensity = 0.5 + (landed / COIN_COUNT) * 0.5; // builds up
-        triggerLandingCascade(targetIdx, cascadeIntensity);
 
         if (navigator.vibrate) navigator.vibrate(8);
 
