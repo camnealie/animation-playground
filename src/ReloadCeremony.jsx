@@ -1,6 +1,9 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import gsap from 'gsap';
+import { Flip } from 'gsap/Flip';
 import './ReloadCeremony.css';
+
+gsap.registerPlugin(Flip);
 
 // MUI Icons
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
@@ -34,21 +37,24 @@ const DEMO_DEBRIEF_CARDS = [
 ];
 
 const DEMO_SPENDING_ENVELOPES = [
-  { id: 1, name: 'Groceries', Icon: ShoppingCartIcon, color: '#e57373', balance: 45.20, suggested: 600 },
-  { id: 2, name: 'Dining Out', Icon: RestaurantIcon, color: '#9575cd', balance: 23.00, suggested: 200 },
-  { id: 3, name: 'Transport', Icon: DirectionsCarIcon, color: '#f06292', balance: 38.50, suggested: 150 },
-  { id: 4, name: 'Entertainment', Icon: MovieIcon, color: '#7986cb', balance: 35.00, suggested: 100 },
-  { id: 5, name: 'Appearance', Icon: SpaIcon, color: '#81c784', balance: 15.00, suggested: 60 },
-  { id: 6, name: 'Recurring', Icon: RepeatIcon, color: '#4db6ac', balance: 0, suggested: 80 },
-  { id: 7, name: 'Household', Icon: HomeIcon, color: '#64b5f6', balance: 0, suggested: 50 },
-  { id: 8, name: 'Gifts', Icon: CheckroomIcon, color: '#ffb74d', balance: 0, suggested: 100 },
+  { id: 1, name: 'Groceries', Icon: ShoppingCartIcon, color: '#e57373', balance: 45.20, suggested: 600, history: [580, 620, 595] },
+  { id: 2, name: 'Dining Out', Icon: RestaurantIcon, color: '#9575cd', balance: 23.00, suggested: 200, history: [185, 220, 190] },
+  { id: 3, name: 'Transport', Icon: DirectionsCarIcon, color: '#f06292', balance: 38.50, suggested: 150, history: [140, 165, 145] },
+  { id: 4, name: 'Entertainment', Icon: MovieIcon, color: '#7986cb', balance: 35.00, suggested: 100, history: [85, 110, 95] },
+  { id: 5, name: 'Appearance', Icon: SpaIcon, color: '#81c784', balance: 15.00, suggested: 60, history: [45, 80, 55] },
+  { id: 6, name: 'Recurring', Icon: RepeatIcon, color: '#4db6ac', balance: 0, suggested: 80, history: [80, 80, 80] },
+  { id: 7, name: 'Household', Icon: HomeIcon, color: '#64b5f6', balance: 0, suggested: 50, history: [35, 65, 48] },
+  { id: 8, name: 'Gifts', Icon: CheckroomIcon, color: '#ffb74d', balance: 0, suggested: 100, history: [0, 150, 85] },
 ];
 
 const DEMO_SAVING_ENVELOPES = [
-  { id: 101, name: 'Emergency', Icon: SavingsIcon, color: '#4db6ac', balance: 4500, target: 10000, suggested: 200, isSavings: true },
-  { id: 102, name: 'Holiday', Icon: FlightIcon, color: '#4dd0e1', balance: 1200, target: 3000, suggested: 150, isSavings: true },
-  { id: 103, name: 'Tech Fund', Icon: LaptopIcon, color: '#7986cb', balance: 800, target: 1500, suggested: 100, isSavings: true },
+  { id: 101, name: 'Emergency', Icon: SavingsIcon, color: '#4db6ac', balance: 4500, target: 10000, suggested: 200, isSavings: true, history: [200, 200, 200] },
+  { id: 102, name: 'Holiday', Icon: FlightIcon, color: '#4dd0e1', balance: 1200, target: 3000, suggested: 150, isSavings: true, history: [150, 150, 150] },
+  { id: 103, name: 'Tech Fund', Icon: LaptopIcon, color: '#7986cb', balance: 800, target: 1500, suggested: 100, isSavings: true, history: [100, 100, 100] },
 ];
+
+// Month labels for spending history
+const HISTORY_MONTHS = ['Nov', 'Dec', 'Jan'];
 
 // Combined envelopes for allocation step - spending first, then savings
 const ALL_ALLOCATION_ENVELOPES = [...DEMO_SPENDING_ENVELOPES, ...DEMO_SAVING_ENVELOPES];
@@ -237,6 +243,113 @@ function CoinStream({ from, to, count = 25, onComplete }) {
   }, [from, to, count, onComplete]);
 
   return <canvas ref={canvasRef} className="coin-canvas" />;
+}
+
+// Horizontal spending chart for drawer
+function HorizontalSpendingChart({ history, suggested, color }) {
+  const maxVal = Math.max(...history, suggested);
+
+  return (
+    <div className="horizontal-chart">
+      {history.map((val, i) => (
+        <div key={i} className="h-chart-row">
+          <span className="h-chart-label">{HISTORY_MONTHS[i]}</span>
+          <div className="h-chart-bar-track">
+            <div
+              className="h-chart-bar"
+              style={{
+                width: `${(val / maxVal) * 100}%`,
+                background: color,
+                opacity: 0.5 + (i * 0.2)
+              }}
+            />
+          </div>
+          <span className="h-chart-value">${val}</span>
+        </div>
+      ))}
+      <div className="h-chart-row suggested">
+        <span className="h-chart-label">Suggested</span>
+        <div className="h-chart-bar-track">
+          <div
+            className="h-chart-bar"
+            style={{
+              width: `${(suggested / maxVal) * 100}%`,
+              background: '#4ade80'
+            }}
+          />
+        </div>
+        <span className="h-chart-value suggested-value">${suggested}</span>
+      </div>
+    </div>
+  );
+}
+
+// Spending details modal
+function SpendingDetailsModal({ envelope, onClose }) {
+  if (!envelope) return null;
+
+  const history = envelope.history || [];
+  const maxVal = Math.max(...history, envelope.suggested);
+  const avg = history.length > 0 ? Math.round(history.reduce((a, b) => a + b, 0) / history.length) : 0;
+  const trend = history.length >= 2 ? history[history.length - 1] - history[0] : 0;
+
+  return (
+    <div className="spending-modal-overlay" onClick={onClose}>
+      <div className="spending-modal" onClick={e => e.stopPropagation()}>
+        <div className="modal-header">
+          <div className="envelope-icon-badge" style={{ background: envelope.color }}>
+            <envelope.Icon sx={{ fontSize: 24, color: '#fff' }} />
+          </div>
+          <h2>{envelope.name} Spending</h2>
+          <button className="modal-close" onClick={onClose}>×</button>
+        </div>
+
+        <div className="modal-stats">
+          <div className="modal-stat">
+            <span className="stat-value">${avg}</span>
+            <span className="stat-label">3-month avg</span>
+          </div>
+          <div className="modal-stat">
+            <span className="stat-value" style={{ color: trend > 0 ? '#f87171' : trend < 0 ? '#4ade80' : '#fff' }}>
+              {trend > 0 ? '+' : ''}{trend === 0 ? '—' : `$${trend}`}
+            </span>
+            <span className="stat-label">Trend</span>
+          </div>
+          <div className="modal-stat">
+            <span className="stat-value" style={{ color: '#4ade80' }}>${envelope.suggested}</span>
+            <span className="stat-label">Suggested</span>
+          </div>
+        </div>
+
+        <div className="modal-chart">
+          {history.map((val, i) => (
+            <div key={i} className="modal-bar-container">
+              <div className="modal-bar-wrapper">
+                <div
+                  className="modal-bar"
+                  style={{
+                    height: `${(val / maxVal) * 100}%`,
+                    background: envelope.color
+                  }}
+                />
+              </div>
+              <span className="modal-bar-label">{HISTORY_MONTHS[i]}</span>
+              <span className="modal-bar-value">${val}</span>
+            </div>
+          ))}
+        </div>
+
+        <p className="modal-explanation">
+          Suggested amount is based on your average spending of ${avg}/month over the last 3 months
+          {trend !== 0 && (
+            <>, with spending {trend > 0 ? 'increasing' : 'decreasing'} by ${Math.abs(trend)}</>
+          )}.
+        </p>
+
+        <button className="modal-done-btn" onClick={onClose}>Got it</button>
+      </div>
+    </div>
+  );
 }
 
 // Floating badge component
@@ -1089,8 +1202,7 @@ function LeftoversStep({ onNext, onEnvelopesUpdate }) {
                 ref={el => (targetRefs.current[target.id] = el)}
                 className={`envelope-tile small ${isHighlighted ? 'drop-target' : ''}`}
               >
-                {isSavings && <span className="envelope-tag savings-tag">savings</span>}
-                <div className="envelope-icon-badge" style={{ background: target.color }}>
+                  <div className="envelope-icon-badge" style={{ background: target.color }}>
                   <target.Icon sx={{ fontSize: 20, color: '#fff' }} />
                 </div>
                 <span className="envelope-name">{target.name}</span>
@@ -1100,6 +1212,7 @@ function LeftoversStep({ onNext, onEnvelopesUpdate }) {
                     : target.balance + (savingsAdded[target.id] || 0)
                   ).toFixed(0)}
                 </span>
+                {isSavings && <span className="envelope-tag savings-tag">savings</span>}
               </div>
             );
           })}
@@ -1147,15 +1260,27 @@ function AllocationStep({ onNext, leftoverDecision }) {
     ALL_ALLOCATION_ENVELOPES.reduce((acc, e) => ({ ...acc, [e.id]: 0 }), {})
   );
   const [drawerEnvelope, setDrawerEnvelope] = useState(null);
+  const [detailsModalEnvelope, setDetailsModalEnvelope] = useState(null);
   const [fundingSavingsId, setFundingSavingsId] = useState(
     DEMO_SAVING_ENVELOPES.find(e => e.balance > 0)?.id || DEMO_SAVING_ENVELOPES[0]?.id
   );
   const containerRef = useRef(null);
   const incomeRef = useRef(null);
-  const fundingSavingsRef = useRef(null);
+  const topSlotRef = useRef(null);
   const envelopeRefs = useRef({});
-  const longPressTimerRef = useRef(null);
-  const longPressTriggeredRef = useRef(false);
+
+  // Prevent context menu globally in this step
+  useEffect(() => {
+    const preventContextMenu = (e) => {
+      if (e.target.closest('.allocation-envelope')) {
+        e.preventDefault();
+        e.stopPropagation();
+        return false;
+      }
+    };
+    document.addEventListener('contextmenu', preventContextMenu, true);
+    return () => document.removeEventListener('contextmenu', preventContextMenu, true);
+  }, []);
 
   const totalAllocated = Object.values(allocations).reduce((sum, v) => sum + v, 0);
   const fundingSavingsEnvelope = DEMO_SAVING_ENVELOPES.find(e => e.id === fundingSavingsId);
@@ -1169,11 +1294,54 @@ function AllocationStep({ onNext, leftoverDecision }) {
   // For display: show income remaining (can go to 0 but not negative)
   const incomeRemaining = Math.max(0, DEMO_INCOME - totalAllocated);
 
-  // Cycle to next savings envelope for funding source
+  // Cycle to next savings envelope with fade animation
+  const [isSwapping, setIsSwapping] = useState(false);
+
   const cycleFundingSavings = () => {
-    const currentIndex = DEMO_SAVING_ENVELOPES.findIndex(e => e.id === fundingSavingsId);
+    if (isSwapping) return;
+
+    const currentId = fundingSavingsId;
+    const currentIndex = DEMO_SAVING_ENVELOPES.findIndex(e => e.id === currentId);
     const nextIndex = (currentIndex + 1) % DEMO_SAVING_ENVELOPES.length;
-    setFundingSavingsId(DEMO_SAVING_ENVELOPES[nextIndex].id);
+    const nextId = DEMO_SAVING_ENVELOPES[nextIndex].id;
+
+    const topEl = topSlotRef.current;
+    const nextEl = envelopeRefs.current[nextId]; // Envelope in grid that will move to top
+
+    if (!topEl) {
+      setFundingSavingsId(nextId);
+      return;
+    }
+
+    setIsSwapping(true);
+
+    // Fade out both: current at top AND next in grid
+    const fadeOutTargets = [topEl];
+    if (nextEl) fadeOutTargets.push(nextEl);
+
+    gsap.to(fadeOutTargets, {
+      opacity: 0,
+      duration: 0.15,
+      ease: 'power2.out',
+      onComplete: () => {
+        // Update state while both are invisible
+        setFundingSavingsId(nextId);
+
+        // Fade in after React re-renders
+        requestAnimationFrame(() => {
+          // Fade in the new top envelope
+          gsap.to(topEl, { opacity: 1, duration: 0.15, ease: 'power2.in' });
+
+          // Fade in the old envelope at its grid position
+          const oldEl = envelopeRefs.current[currentId];
+          if (oldEl) {
+            gsap.fromTo(oldEl, { opacity: 0 }, { opacity: 1, duration: 0.15, ease: 'power2.in' });
+          }
+
+          setTimeout(() => setIsSwapping(false), 150);
+        });
+      }
+    });
   };
 
   // Calculate total savings allocated (to auto-clear when over budget)
@@ -1204,90 +1372,26 @@ function AllocationStep({ onNext, leftoverDecision }) {
     return !isUsingFromSavings;
   };
 
-  // Tap to toggle fill
+  // Tap to open drawer
   const handleEnvelopeTap = (envelope) => {
-    // If long press was triggered, don't do tap action
-    if (longPressTriggeredRef.current) {
-      longPressTriggeredRef.current = false;
-      return;
-    }
-
-    const currentAllocation = allocations[envelope.id];
-
-    if (currentAllocation > 0) {
-      // Already filled - clear it (always allowed)
-      setAllocations(prev => ({ ...prev, [envelope.id]: 0 }));
-
-      // Animate the envelope
+    // Check if savings allocation is blocked
+    if (envelope.isSavings && isUsingFromSavings) {
+      // Shake animation to indicate blocked
       const el = envelopeRefs.current[envelope.id];
       if (el) {
         el.animate([
-          { transform: 'scale(1)' },
-          { transform: 'scale(0.95)' },
-          { transform: 'scale(1)' },
-        ], { duration: 200, easing: 'ease-out' });
+          { transform: 'translateX(0)' },
+          { transform: 'translateX(-4px)' },
+          { transform: 'translateX(4px)' },
+          { transform: 'translateX(-4px)' },
+          { transform: 'translateX(0)' },
+        ], { duration: 300, easing: 'ease-out' });
       }
-    } else {
-      // Check if savings allocation is blocked
-      if (envelope.isSavings && isUsingFromSavings) {
-        // Shake animation to indicate blocked
-        const el = envelopeRefs.current[envelope.id];
-        if (el) {
-          el.animate([
-            { transform: 'translateX(0)' },
-            { transform: 'translateX(-4px)' },
-            { transform: 'translateX(4px)' },
-            { transform: 'translateX(-4px)' },
-            { transform: 'translateX(0)' },
-          ], { duration: 300, easing: 'ease-out' });
-        }
-        return;
-      }
-
-      // Not filled - fill to suggested (or remaining, whichever is less)
-      const fillAmount = Math.min(envelope.suggested, remaining);
-      if (fillAmount > 0) {
-        setAllocations(prev => ({ ...prev, [envelope.id]: fillAmount }));
-
-        // Animate the envelope with a satisfying pop
-        const el = envelopeRefs.current[envelope.id];
-        if (el) {
-          el.animate([
-            { transform: 'scale(1)' },
-            { transform: 'scale(1.08)' },
-            { transform: 'scale(0.97)' },
-            { transform: 'scale(1.02)' },
-            { transform: 'scale(1)' },
-          ], { duration: 350, easing: 'cubic-bezier(0.175, 0.885, 0.32, 1.275)' });
-        }
-
-        if (navigator.vibrate) navigator.vibrate(15);
-      }
+      return;
     }
-  };
 
-  // Long press handlers
-  const handlePointerDown = (envelope) => {
-    longPressTriggeredRef.current = false;
-    longPressTimerRef.current = setTimeout(() => {
-      longPressTriggeredRef.current = true;
-      if (navigator.vibrate) navigator.vibrate(20);
-      setDrawerEnvelope(envelope);
-    }, 500);
-  };
-
-  const handlePointerUp = () => {
-    if (longPressTimerRef.current) {
-      clearTimeout(longPressTimerRef.current);
-      longPressTimerRef.current = null;
-    }
-  };
-
-  const handlePointerLeave = () => {
-    if (longPressTimerRef.current) {
-      clearTimeout(longPressTimerRef.current);
-      longPressTimerRef.current = null;
-    }
+    // Open the drawer
+    setDrawerEnvelope(envelope);
   };
 
   // Drawer amount adjustment
@@ -1550,8 +1654,9 @@ function AllocationStep({ onNext, leftoverDecision }) {
     }
 
     // Also deflate savings envelope if we're dipping into it
-    if (isUsingFromSavings && fundingSavingsRef.current) {
-      fundingSavingsRef.current.animate([
+    const fundingSavingsEl = envelopeRefs.current[fundingSavingsId];
+    if (isUsingFromSavings && fundingSavingsEl) {
+      fundingSavingsEl.animate([
         { transform: 'scale(1)' },
         { transform: 'scale(0.85)', offset: 0.4 },
         { transform: 'scale(0.9)', offset: 0.7 },
@@ -1592,8 +1697,8 @@ function AllocationStep({ onNext, leftoverDecision }) {
       });
 
       // Coins from savings (if applicable)
-      if (isUsingFromSavings && fundingSavingsRef.current && fromSavings > 0) {
-        animateCoinsToEnvelope(fundingSavingsRef.current, targetEl, fromSavings, i * 150 + 75, () => {
+      if (isUsingFromSavings && fundingSavingsEl && fromSavings > 0) {
+        animateCoinsToEnvelope(fundingSavingsEl, targetEl, fromSavings, i * 150 + 75, () => {
           completed++;
           if (completed === totalToComplete) {
             setTimeout(() => {
@@ -1608,12 +1713,19 @@ function AllocationStep({ onNext, leftoverDecision }) {
     });
   };
 
-  const incomeProgressPercent = Math.min(100, (Math.min(totalAllocated, DEMO_INCOME) / DEMO_INCOME) * 100);
-  const savingsProgressPercent = isUsingFromSavings ? ((savingsUsage / totalAvailable) * 100) : 0;
-  const totalProgressPercent = (totalAllocated / totalAvailable) * 100;
+  // Progress bar percentages - relative to total allocated when using savings
+  const incomeProgressPercent = isUsingFromSavings
+    ? (DEMO_INCOME / totalAllocated) * 100  // Income portion of total
+    : Math.min(100, (totalAllocated / DEMO_INCOME) * 100);  // Progress toward income
+  const savingsProgressPercent = isUsingFromSavings
+    ? (savingsUsage / totalAllocated) * 100  // Savings portion of total
+    : 0;
 
   return (
-    <div className="step-container allocation-step" ref={containerRef}>
+    <div
+      className="step-container allocation-step"
+      ref={containerRef}
+    >
       <div className="step-header">
         <h1>Fill Your Envelopes</h1>
         <p className="step-subtitle">
@@ -1621,7 +1733,7 @@ function AllocationStep({ onNext, leftoverDecision }) {
         </p>
       </div>
 
-      {/* Income envelope at top (+ funding savings when over budget) */}
+      {/* Income envelope at top (+ placeholder for funding savings) */}
       <div className="allocation-income-section">
         <div
           ref={incomeRef}
@@ -1637,11 +1749,11 @@ function AllocationStep({ onNext, leftoverDecision }) {
           </div>
         </div>
 
-        {/* Funding savings envelope - appears when over budget */}
+        {/* Funding savings envelope at top when dipping into savings */}
         {isUsingFromSavings && fundingSavingsEnvelope && (
           <div
-            ref={fundingSavingsRef}
-            className="envelope-tile small funding-savings"
+            ref={topSlotRef}
+            className="envelope-tile small funding-savings-slot funding-savings"
             onClick={cycleFundingSavings}
             style={{ cursor: 'pointer' }}
           >
@@ -1651,6 +1763,8 @@ function AllocationStep({ onNext, leftoverDecision }) {
             </div>
             <span className="envelope-name">{fundingSavingsEnvelope.name}</span>
             <span className="envelope-amount">${fundingSavingsEnvelope.balance.toLocaleString()}</span>
+            <span className="envelope-tag savings-tag">savings</span>
+            <span className="funding-swap-hint">tap to swap</span>
           </div>
         )}
       </div>
@@ -1688,24 +1802,46 @@ function AllocationStep({ onNext, leftoverDecision }) {
       </div>
 
       {/* Envelope grid - same style as other steps */}
-      <div className="envelope-grid allocation-grid-tap">
+      <div
+        className="envelope-grid allocation-grid-tap"
+        onContextMenu={(e) => e.preventDefault()}
+        onSelectStart={(e) => e.preventDefault()}
+      >
         {ALL_ALLOCATION_ENVELOPES.map(envelope => {
           const allocation = allocations[envelope.id];
           const isFilled = allocation > 0;
           const startingBalance = getStartingBalance(envelope);
-          const isBlockedSavings = envelope.isSavings && isUsingFromSavings && !isFilled;
+          const isFundingSource = envelope.id === fundingSavingsId && isUsingFromSavings;
+          const isBlockedSavings = envelope.isSavings && isUsingFromSavings && !isFilled && !isFundingSource;
+
+          // Funding source envelope - render invisible placeholder (envelope shows at top)
+          if (isFundingSource) {
+            return (
+              <div
+                key={envelope.id}
+                ref={el => { envelopeRefs.current[envelope.id] = el; }}
+                className="envelope-tile small allocation-envelope"
+                style={{ visibility: 'hidden', pointerEvents: 'none' }}
+              >
+                <div className="envelope-icon-badge" style={{ background: envelope.color }}>
+                  <envelope.Icon sx={{ fontSize: 20, color: '#fff' }} />
+                </div>
+                <span className="envelope-name">{envelope.name}</span>
+                <span className="envelope-amount">${envelope.balance}</span>
+              </div>
+            );
+          }
 
           return (
             <div
               key={envelope.id}
-              ref={el => (envelopeRefs.current[envelope.id] = el)}
+              ref={el => { envelopeRefs.current[envelope.id] = el; }}
               className={`envelope-tile small allocation-envelope ${isFilled ? 'filled' : ''} ${isBlockedSavings ? 'blocked-savings' : ''}`}
               onClick={() => handleEnvelopeTap(envelope)}
-              onPointerDown={() => handlePointerDown(envelope)}
-              onPointerUp={handlePointerUp}
-              onPointerLeave={handlePointerLeave}
-              onPointerCancel={handlePointerUp}
-              style={{ cursor: isBlockedSavings ? 'not-allowed' : 'pointer', touchAction: 'none' }}
+              onContextMenu={(e) => e.preventDefault()}
+              style={{
+                cursor: isBlockedSavings ? 'not-allowed' : 'pointer',
+              }}
             >
               {isFilled && <span className="envelope-tag filled-tag">+${allocation}</span>}
               <div className="envelope-icon-badge" style={{ background: envelope.color }}>
@@ -1715,9 +1851,7 @@ function AllocationStep({ onNext, leftoverDecision }) {
               <span className="envelope-amount">
                 ${(startingBalance + allocation).toLocaleString()}
               </span>
-              <span className={`envelope-suggested ${isFilled ? 'hidden' : ''}`}>
-                tap for ${envelope.suggested}
-              </span>
+              <span className="envelope-suggested-italic">suggested ${envelope.suggested}</span>
               {envelope.isSavings && <span className="envelope-tag savings-tag">savings</span>}
             </div>
           );
@@ -1753,24 +1887,29 @@ function AllocationStep({ onNext, leftoverDecision }) {
               </div>
             </div>
 
-            <div className="drawer-section">
-              <div className="drawer-section-label">Suggested amount</div>
-              <div className="drawer-suggestion">
-                <span className="drawer-suggested-amount">${drawerEnvelope.suggested}</span>
-                <span className="drawer-suggestion-reason">
-                  {drawerEnvelope.isSavings
-                    ? `Based on your savings target of $${drawerEnvelope.target?.toLocaleString()}`
-                    : 'Based on average spending from last 3 months'
-                  }
-                </span>
+            {/* Horizontal spending history bars */}
+            <div className="drawer-history-section">
+              <div className="drawer-history-header">
+                <span className="drawer-section-label">Recent spending</span>
+                <button
+                  className="drawer-details-link"
+                  onClick={() => setDetailsModalEnvelope(drawerEnvelope)}
+                >
+                  Details →
+                </button>
               </div>
+              <HorizontalSpendingChart
+                history={drawerEnvelope.history || []}
+                suggested={drawerEnvelope.suggested}
+                color={drawerEnvelope.color}
+              />
             </div>
 
             <div className="drawer-section">
               <div className="drawer-section-label">Your allocation</div>
               <div className="drawer-amount-control">
                 <button
-                  className="drawer-amount-btn large"
+                  className="drawer-amount-btn"
                   onClick={() => handleDrawerAmountChange(-25)}
                 >
                   −
@@ -1779,7 +1918,7 @@ function AllocationStep({ onNext, leftoverDecision }) {
                   ${allocations[drawerEnvelope.id] || 0}
                 </span>
                 <button
-                  className="drawer-amount-btn large"
+                  className="drawer-amount-btn"
                   onClick={() => handleDrawerAmountChange(25)}
                 >
                   +
@@ -1799,6 +1938,14 @@ function AllocationStep({ onNext, leftoverDecision }) {
           </div>
         </div>
       )}
+
+      {/* Spending details modal */}
+      {detailsModalEnvelope && (
+        <SpendingDetailsModal
+          envelope={detailsModalEnvelope}
+          onClose={() => setDetailsModalEnvelope(null)}
+        />
+      )}
     </div>
   );
 }
@@ -1807,6 +1954,11 @@ function AllocationStep({ onNext, leftoverDecision }) {
 function CompleteStep({ totalAllocated, envelopeCount, onFinish }) {
   const checkRef = useRef(null);
   const contentRef = useRef(null);
+
+  // Calculate next budget date (1 month from now)
+  const nextBudgetDate = new Date();
+  nextBudgetDate.setMonth(nextBudgetDate.getMonth() + 1);
+  const nextBudgetStr = nextBudgetDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 
   useEffect(() => {
     if (checkRef.current) {
@@ -1841,7 +1993,7 @@ function CompleteStep({ totalAllocated, envelopeCount, onFinish }) {
             <span className="info-label">28 days remaining</span>
           </div>
           <div className="info-row">
-            <span className="info-label">Next budget: Feb 1</span>
+            <span className="info-label">Next budget: {nextBudgetStr}</span>
           </div>
         </div>
 
