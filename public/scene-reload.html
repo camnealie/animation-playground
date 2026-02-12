@@ -1441,7 +1441,7 @@ const envelopesDef = [
   { icon: 'ph-fill ph-fork-knife',  name: 'Dining Out',  color: '#e078a8', balance: 4800,  suggested: 45000,  savings: false },
   { icon: 'ph-fill ph-shopping-cart',name: 'Groceries',   color: '#48c8a0', balance: 6200,  suggested: 60000,  savings: false },
   { icon: 'ph-fill ph-airplane',    name: 'Travel',      color: '#e8a060', balance: 0,     suggested: 30000,  savings: false },
-  { icon: 'ph-fill ph-piggy-bank',  name: 'Savings',     color: '#4ade80', balance: 52000, suggested: 80000,  savings: true },
+  { icon: 'ph-fill ph-piggy-bank',  name: 'Savings',     color: '#4ade80', balance: 350000, suggested: 400000,  savings: true },
 ];
 
 const leftoversDef = [
@@ -1453,7 +1453,7 @@ const leftoversDef = [
 
 const targetsDef = [
   { icon: 'ph-fill ph-bank', name: 'Income', color: '#9575cd', balance: INCOME },
-  { icon: 'ph-fill ph-piggy-bank', name: 'Savings', color: '#4ade80', balance: 52000 },
+  { icon: 'ph-fill ph-piggy-bank', name: 'Savings', color: '#4ade80', balance: 350000 },
 ];
 
 // Fake spending history per envelope (cents)
@@ -2002,6 +2002,7 @@ function updateAllocationUI() {
 
 // ── Allocation Drawer ──
 let drawerEnvelopeIdx = null;
+let drawerSuggestedAlloc = 0; // fixed suggested allocation (cents) set on drawer open
 
 function openAllocDrawer(idx) {
   drawerEnvelopeIdx = idx;
@@ -2070,9 +2071,9 @@ function openAllocDrawer(idx) {
 
   // Suggested button
   const sugBtn = document.getElementById('drawerSuggested');
-  const sugToAdd = Math.max(0, env.suggested - env.balance - allocations[idx]);
-  const sugDollars = Math.round(sugToAdd / 100);
-  if (sugToAdd > 0) {
+  drawerSuggestedAlloc = Math.max(0, env.suggested - env.balance);
+  const sugDollars = Math.round(drawerSuggestedAlloc / 100);
+  if (drawerSuggestedAlloc > 0) {
     sugBtn.textContent = `Use Suggested ($${sugDollars})`;
     sugBtn.disabled = false;
     sugBtn.style.display = '';
@@ -2111,7 +2112,6 @@ function setDrawerAllocation(cents) {
   document.getElementById('drawerInput').value = dollars > 0 ? dollars : '';
   updateDrawerBalance();
   updateDrawerMinus();
-  updateDrawerSuggested();
 }
 
 function updateDrawerBalance() {
@@ -2125,20 +2125,6 @@ function updateDrawerMinus() {
   const btn = document.getElementById('drawerMinus');
   const val = drawerEnvelopeIdx !== null ? allocations[drawerEnvelopeIdx] : 0;
   btn.disabled = val <= 0;
-}
-
-function updateDrawerSuggested() {
-  if (drawerEnvelopeIdx === null) return;
-  const env = envelopesDef[drawerEnvelopeIdx];
-  const sugToAdd = Math.max(0, env.suggested - env.balance - allocations[drawerEnvelopeIdx]);
-  const sugBtn = document.getElementById('drawerSuggested');
-  if (sugToAdd > 0) {
-    sugBtn.textContent = `Use Suggested ($${Math.round(sugToAdd / 100)})`;
-    sugBtn.disabled = false;
-  } else {
-    sugBtn.textContent = 'Already at or above suggested';
-    sugBtn.disabled = true;
-  }
 }
 
 // Drawer event listeners
@@ -2174,9 +2160,7 @@ document.getElementById('drawerPlus').addEventListener('click', () => {
 
 document.getElementById('drawerSuggested').addEventListener('click', () => {
   if (drawerEnvelopeIdx === null) return;
-  const env = envelopesDef[drawerEnvelopeIdx];
-  const toAdd = Math.max(0, env.suggested - env.balance);
-  setDrawerAllocation(toAdd);
+  setDrawerAllocation(drawerSuggestedAlloc);
 });
 
 document.getElementById('drawerInput').addEventListener('focus', (e) => {
