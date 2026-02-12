@@ -1316,9 +1316,9 @@
               <i class="ph-fill ph-bank"></i>
             </div>
             <div class="alloc-tile-name">Income</div>
-            <div class="alloc-tile-amount" id="incomeAmount">$2,450</div>
+            <div class="alloc-tile-amount" id="incomeAmount">$3,450</div>
           </div>
-          <div class="income-remaining" id="incomeRemaining">$2,450 left</div>
+          <div class="income-remaining" id="incomeRemaining">$3,450 left</div>
         </div>
         <div class="savings-overflow" id="savingsOverflow" style="display:none;">
           <div class="alloc-tile" style="border: 2px solid #4ade80;">
@@ -1358,7 +1358,7 @@
     <div class="step" id="step-complete" style="justify-content: center;">
       <div class="complete-icon" id="completeIcon"><i class="ph ph-check"></i></div>
       <div class="complete-title" id="completeTitle">Budget Complete!</div>
-      <div class="complete-summary" id="completeSummary">You allocated $2,450 across 7 envelopes</div>
+      <div class="complete-summary" id="completeSummary">You allocated $3,450 across 7 envelopes</div>
 
       <div class="complete-info-box" id="completeInfoBox">
         <div class="complete-days">30 days remaining</div>
@@ -1408,16 +1408,16 @@
 
 <script>
 // ── Data ──
-const INCOME = 245000; // cents
+const INCOME = 345000; // cents ($3,450)
 const envelopesDef = [
-  { icon: 'ph-fill ph-credit-card', name: 'Recurring',   color: '#5ec98a', balance: 85000, suggested: 120000, savings: false },
-  { icon: 'ph-fill ph-car',         name: 'Transport',   color: '#b070f0', balance: 12000, suggested: 40000,  savings: false },
-  { icon: 'ph-fill ph-user',        name: 'Appearance',  color: '#f0c050', balance: 0,     suggested: 25000,  savings: false },
-  { icon: 'ph-fill ph-house',       name: 'Household',   color: '#5c9ee8', balance: 3400,  suggested: 150000, savings: false },
-  { icon: 'ph-fill ph-fork-knife',  name: 'Dining Out',  color: '#e078a8', balance: 4800,  suggested: 45000,  savings: false },
-  { icon: 'ph-fill ph-shopping-cart',name: 'Groceries',   color: '#48c8a0', balance: 6200,  suggested: 60000,  savings: false },
-  { icon: 'ph-fill ph-airplane',    name: 'Travel',      color: '#e8a060', balance: 0,     suggested: 30000,  savings: false },
-  { icon: 'ph-fill ph-piggy-bank',  name: 'Savings',     color: '#4ade80', balance: 350000, suggested: 400000,  savings: true },
+  { icon: 'ph-fill ph-credit-card', name: 'Recurring',   color: '#5ec98a', balance: 85000, savings: false },
+  { icon: 'ph-fill ph-car',         name: 'Transport',   color: '#b070f0', balance: 12000, savings: false },
+  { icon: 'ph-fill ph-user',        name: 'Appearance',  color: '#f0c050', balance: 0,     savings: false },
+  { icon: 'ph-fill ph-house',       name: 'Household',   color: '#5c9ee8', balance: 3400,  savings: false },
+  { icon: 'ph-fill ph-fork-knife',  name: 'Dining Out',  color: '#e078a8', balance: 4800,  savings: false },
+  { icon: 'ph-fill ph-shopping-cart',name: 'Groceries',   color: '#48c8a0', balance: 6200,  savings: false },
+  { icon: 'ph-fill ph-airplane',    name: 'Travel',      color: '#e8a060', balance: 0,     savings: false },
+  { icon: 'ph-fill ph-piggy-bank',  name: 'Savings',     color: '#4ade80', balance: 350000, savings: true },
 ];
 
 const leftoversDef = [
@@ -1443,6 +1443,17 @@ const spendingHistory = [
   /* Travel */      [{ month: 'Jan', spent: 25000 },  { month: 'Feb', spent: 18000 }],
   /* Savings */     [{ month: 'Dec', spent: 60000 },  { month: 'Jan', spent: 75000 },  { month: 'Feb', spent: 70000 }],
 ];
+
+// Compute suggested as average of spending history
+envelopesDef.forEach((env, i) => {
+  const history = spendingHistory[i] || [];
+  if (history.length > 0) {
+    const total = history.reduce((sum, h) => sum + h.spent, 0);
+    env.suggested = Math.round(total / history.length / 100) * 100; // round to nearest dollar
+  } else {
+    env.suggested = 0;
+  }
+});
 
 // ── State ──
 let currentStep = 0;
