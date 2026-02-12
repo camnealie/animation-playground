@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Loot — Banner</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body {
+      width: 100%; height: 100%;
+      background: #0f0f1a;
+      overflow: hidden;
+      font-family: 'Nunito', system-ui, -apple-system, sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .banner {
+      width: 100%;
+      height: 100vh;
+      max-height: 800px;
+      min-height: 650px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      perspective: 1400px;
+      perspective-origin: 50% 45%;
+    }
+
+    .content-area {
+      position: relative;
+      width: 100%;
+      max-width: 1100px;
+      height: 100%;
+      margin: 0 auto;
+    }
+
+    /* ═══════ 3D PHONE ═══════ */
+
+    .phone-stage {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      transform-style: preserve-3d;
+    }
+
+    .phone-3d {
+      --pw: 270px;
+      --ph: 580px;
+      --depth: 48px;  /* 48 layers × 1px */
+      --bezel: 10px;
+      --radius: 44px;
+
+      width: var(--pw);
+      height: var(--ph);
+      position: relative;
+      transform-style: preserve-3d;
+    }
+
+    /* ── Front face ── */
+    .phone-front {
+      position: absolute;
+      inset: 0;
+      border-radius: var(--radius);
+      transform: translateZ(calc(var(--depth) / 2));
+      background: linear-gradient(145deg, #2c2c2c 0%, #1a1a1a 40%, #111 100%);
+      padding: var(--bezel);
+      box-shadow:
+        0 0 0 1px rgba(255,255,255,0.12),
+        inset 0 1px 1px rgba(255,255,255,0.08),
+        inset 0 -1px 1px rgba(0,0,0,0.3);
+      backface-visibility: hidden;
+    }
+
+    .screen {
+      width: 100%;
+      height: 100%;
+      border-radius: 36px;
+      overflow: hidden;
+      position: relative;
+      background: #1a1a2e;
+    }
+
+    .iframe-wrap {
+      width: 412px;
+      height: 915px;
+      transform: scale(calc(250 / 412));
+      transform-origin: top left;
+      position: absolute;
+      top: 0; left: 0;
+    }
+    .iframe-wrap iframe {
+      width: 100%; height: 100%;
+      border: none;
+    }
+
+    .dynamic-island {
+      position: absolute;
+      top: 8px; left: 50%;
+      transform: translateX(-50%);
+      width: 78px; height: 22px;
+      background: #000;
+      border-radius: 16px;
+      z-index: 10;
+    }
+    .dynamic-island::after {
+      content: '';
+      position: absolute;
+      right: 14px; top: 50%;
+      transform: translateY(-50%);
+      width: 7px; height: 7px;
+      background: radial-gradient(circle at 40% 40%, #1a2a3a, #0a0a1a);
+      border-radius: 50%;
+    }
+
+    .screen-glare {
+      position: absolute; inset: 0;
+      border-radius: 36px;
+      pointer-events: none;
+      z-index: 5;
+      background: linear-gradient(125deg,
+        rgba(255,255,255,0.07) 0%,
+        rgba(255,255,255,0.02) 18%,
+        transparent 38%
+      );
+    }
+
+    /* Power + volume buttons on front */
+    .phone-front::before {
+      content: '';
+      position: absolute;
+      right: -3px; top: 140px;
+      width: 3px; height: 46px;
+      background: linear-gradient(to right, #2a2a2a, #1a1a1a);
+      border-radius: 0 2px 2px 0;
+    }
+    .btn-silent, .btn-vol-up, .btn-vol-down {
+      position: absolute;
+      left: -3px; width: 3px;
+      background: linear-gradient(to left, #2a2a2a, #1a1a1a);
+      border-radius: 2px 0 0 2px;
+    }
+    .btn-silent   { top: 95px;  height: 22px; }
+    .btn-vol-up   { top: 135px; height: 36px; }
+    .btn-vol-down { top: 180px; height: 36px; }
+
+    /* ── Back face ── */
+    .phone-back {
+      position: absolute;
+      inset: 0;
+      border-radius: var(--radius);
+      transform: rotateY(180deg) translateZ(calc(var(--depth) / 2));
+      background: linear-gradient(160deg, #303030 0%, #1e1e1e 35%, #141414 100%);
+      box-shadow:
+        0 0 0 1px rgba(255,255,255,0.08),
+        inset 0 1px 1px rgba(255,255,255,0.05),
+        inset 0 -1px 2px rgba(0,0,0,0.4);
+      backface-visibility: hidden;
+      overflow: hidden;
+    }
+
+    /* Subtle matte texture on back */
+    .phone-back::before {
+      content: '';
+      position: absolute; inset: 0;
+      border-radius: var(--radius);
+      background: repeating-conic-gradient(
+        rgba(255,255,255,0.008) 0deg 1deg,
+        transparent 1deg 2deg
+      );
+    }
+
+    .camera-bump {
+      position: absolute;
+      top: 18px; left: 18px;
+      width: 72px; height: 72px;
+      background: linear-gradient(145deg, #222, #181818);
+      border-radius: 20px;
+      border: 1px solid rgba(255,255,255,0.06);
+      padding: 8px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 5px;
+    }
+    .lens {
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 35%, #1c2a3a, #06060e);
+      border: 1.5px solid #333;
+      box-shadow:
+        inset 0 0 3px rgba(40, 90, 160, 0.3),
+        0 0 4px rgba(0,0,0,0.4);
+    }
+    .lens.lidar {
+      background: radial-gradient(circle at 50% 50%, #1a1a2a, #0a0a12);
+      border-color: #2a2a2a;
+      box-shadow: inset 0 0 2px rgba(80,60,140,0.2);
+    }
+    .flash {
+      position: absolute;
+      top: 26px; left: 98px;
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 45% 40%, #f0e4c8, #c4a45a 60%, #8a7030);
+      box-shadow: 0 0 6px rgba(240,220,160,0.15);
+    }
+    .back-logo {
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: 32px; height: 32px;
+      background: rgba(255,255,255,0.04);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px; font-weight: 800;
+      color: rgba(255,255,255,0.06);
+    }
+
+    /* ── Depth layers — stacked translateZ for rounded edges ── */
+    .depth-layer {
+      position: absolute;
+      inset: 0;
+      border-radius: var(--radius);
+      border: 1px solid rgba(255,255,255,0.04);
+      pointer-events: none;
+    }
+
+    /* ── Ambient glow ── */
+    .phone-glow {
+      position: absolute;
+      top: -40px; left: -40px;
+      right: -40px; bottom: -40px;
+      border-radius: 60px;
+      background: radial-gradient(ellipse at center,
+        rgba(152,54,254,0.12) 0%,
+        rgba(152,54,254,0.04) 40%,
+        transparent 65%
+      );
+      filter: blur(20px);
+      z-index: -1;
+      pointer-events: none;
+    }
+
+    /* ── Ground shadow ── */
+    .ground-shadow {
+      position: absolute;
+      bottom: -35px; left: 50%;
+      width: 240px; height: 140px;
+      transform: translateX(-50%) translateZ(-120px);
+      background: radial-gradient(ellipse at 50% 30%,
+        rgba(0,0,0,0.55) 0%,
+        rgba(0,0,0,0.15) 40%,
+        transparent 70%
+      );
+      filter: blur(16px);
+      pointer-events: none;
+    }
+
+    /* ═══════ TAGLINE ═══════ */
+
+    .tagline {
+      position: absolute;
+      top: 50%;
+      right: 80px;
+      transform: translateY(-50%);
+      max-width: 400px;
+      opacity: 0;
+    }
+    .tagline-logo {
+      width: 320px;
+      margin-bottom: 28px;
+      display: block;
+    }
+    .tagline-text {
+      font-size: 38px;
+      font-weight: 800;
+      color: #f0f0f5;
+      line-height: 1.2;
+      letter-spacing: -0.5px;
+    }
+    .tagline-accent {
+      color: #9836fe;
+    }
+    .tagline-sub {
+      font-size: 15px;
+      font-weight: 500;
+      color: #606080;
+      margin-top: 20px;
+      line-height: 1.5;
+    }
+    .tagline-cta {
+      display: inline-block;
+      margin-top: 28px;
+      padding: 12px 32px;
+      background: #9836fe;
+      color: white;
+      font-size: 15px;
+      font-weight: 700;
+      font-family: inherit;
+      text-decoration: none;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      box-shadow: 0 4px 20px rgba(152,54,254,0.35);
+    }
+  </style>
+</head>
+<body>
+  <div class="banner">
+    <div class="content-area">
+
+      <!-- ═══ Phone ═══ -->
+      <div class="phone-stage" id="stage">
+        <div class="phone-glow" id="glow"></div>
+        <div class="phone-3d" id="phone">
+          <!-- Front -->
+          <div class="phone-front">
+            <div class="btn-silent"></div>
+            <div class="btn-vol-up"></div>
+            <div class="btn-vol-down"></div>
+            <div class="screen">
+              <div class="dynamic-island"></div>
+              <div class="iframe-wrap">
+                <iframe id="scene" src="scene-splash.html?banner" allow="autoplay" scrolling="no"></iframe>
+              </div>
+              <div class="screen-glare"></div>
+            </div>
+          </div>
+          <!-- Back (visible as depth backing) -->
+          <div class="phone-back"></div>
+          <!-- Depth layers (generated by JS) -->
+          <div class="depth-layers" id="depth-layers" aria-hidden="true"></div>
+        </div>
+        <div class="ground-shadow" id="shadow"></div>
+      </div>
+
+      <!-- ═══ Tagline ═══ -->
+      <div class="tagline" id="tagline">
+        <img class="tagline-logo" src="loottitle.gif" alt="Loot" id="tag-logo" />
+        <div class="tagline-text" id="tag-text">
+          Stop guessing where your <span class="tagline-accent">money</span> went.
+        </div>
+        <div class="tagline-sub" id="tag-sub">
+          Envelope budgeting that works with your NZ bank accounts.
+        </div>
+        <a class="tagline-cta" id="tag-cta" href="#" onclick="window.parent.postMessage({action:'cta-click'},'*');return false;">See It In Action</a>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    /* ── Generate depth layers ── */
+    (function () {
+      const container = document.getElementById('depth-layers');
+      const LAYERS = 48;
+      const SPACING = 1;            /* px between each layer */
+      for (let i = 1; i <= LAYERS; i++) {
+        const el = document.createElement('div');
+        el.className = 'depth-layer';
+        const z = -(i * SPACING);
+        /* Titanium gradient: lighter at edges, darker in middle */
+        const lightness = Math.max(12, 36 - i * 0.5);
+        el.style.transform = `translateZ(${z}px)`;
+        el.style.background = `hsl(0, 0%, ${lightness}%)`;
+        container.appendChild(el);
+      }
+    })();
+  </script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <script>
+    const stage   = document.getElementById('stage');
+    const phone   = document.getElementById('phone');
+    const tagline = document.getElementById('tagline');
+    const tagLogo = document.getElementById('tag-logo');
+    const tagText = document.getElementById('tag-text');
+    const tagSub  = document.getElementById('tag-sub');
+    const tagCta  = document.getElementById('tag-cta');
+
+    function runBanner() {
+      /* ── Initial state: phone on left, angled to show depth ── */
+      gsap.set(stage, { left: '28%', xPercent: -50 });
+      gsap.set(phone, { rotateY: -16, rotateX: 8 });
+      gsap.set(tagline, { opacity: 0 });
+      gsap.set(tagLogo, { opacity: 0, y: 20, scale: 0.9 });
+      gsap.set(tagText, { opacity: 0, y: 20 });
+      gsap.set(tagSub,  { opacity: 0, y: 15 });
+      gsap.set(tagCta,  { opacity: 0, y: 15 });
+
+      const tl = gsap.timeline();
+
+      /* ── Tagline reveals (0.5 – 2.5s) ── */
+      tl.set(tagline, { opacity: 1 }, 0.5)
+      .to(tagLogo, { opacity: 1, y: 0, scale: 1, duration: 0.6, ease: 'back.out(2)' }, 0.5)
+      .to(tagText, { opacity: 1, y: 0, duration: 0.5, ease: 'power2.out' }, '-=0.2')
+      .to(tagSub,  { opacity: 1, y: 0, duration: 0.4, ease: 'power2.out' }, '-=0.15')
+      .to(tagCta,  { opacity: 1, y: 0, duration: 0.4, ease: 'power2.out' }, '-=0.1');
+
+      /* ── Infinite gentle float on the phone ── */
+      gsap.to(phone, {
+        rotateY: -10, rotateX: 10, y: -10,
+        duration: 4, ease: 'sine.inOut', yoyo: true, repeat: -1,
+      });
+    }
+
+    /* Start once iframe loads */
+    const iframe = document.getElementById('scene');
+    iframe.addEventListener('load', function onFirst() {
+      iframe.removeEventListener('load', onFirst);
+      runBanner();
+    });
+  </script>
+</body>
+</html>

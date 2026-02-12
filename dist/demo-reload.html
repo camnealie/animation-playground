@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Loot — Reload Ceremony</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      background: transparent;
+      overflow: hidden;
+    }
+
+    .phone {
+      --phone-width: 320px;
+      --phone-height: 690px;
+      --bezel: 12px;
+      --screen-width: calc(var(--phone-width) - var(--bezel) * 2);
+      --screen-height: calc(var(--phone-height) - var(--bezel) * 2);
+      --demo-width: 412px;
+      --demo-height: 915px;
+
+      position: relative;
+      width: var(--phone-width);
+      height: var(--phone-height);
+      background: #1a1a1a;
+      border-radius: 48px;
+      padding: var(--bezel);
+      box-shadow:
+        0 0 0 1px rgba(255, 255, 255, 0.1),
+        0 20px 60px rgba(0, 0, 0, 0.5),
+        0 0 0 3px #0a0a0a,
+        inset 0 0 2px rgba(255, 255, 255, 0.05);
+    }
+
+    /* Power button — right side */
+    .phone::before {
+      content: '';
+      position: absolute;
+      right: -3px;
+      top: 160px;
+      width: 3px;
+      height: 52px;
+      background: linear-gradient(to right, #2a2a2a, #1a1a1a);
+      border-radius: 0 2px 2px 0;
+      box-shadow: 1px 0 2px rgba(0, 0, 0, 0.3);
+    }
+
+    /* Volume buttons — left side */
+    .vol-up, .vol-down, .silent {
+      position: absolute;
+      left: -3px;
+      width: 3px;
+      background: linear-gradient(to left, #2a2a2a, #1a1a1a);
+      border-radius: 2px 0 0 2px;
+      box-shadow: -1px 0 2px rgba(0, 0, 0, 0.3);
+    }
+    .silent { top: 110px; height: 24px; }
+    .vol-up { top: 155px; height: 40px; }
+    .vol-down { top: 205px; height: 40px; }
+
+    .screen {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      border-radius: 38px;
+      overflow: hidden;
+      background: #0f0f1a;
+    }
+
+    /* Dynamic Island */
+    .dynamic-island {
+      position: absolute;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 90px;
+      height: 26px;
+      background: #000;
+      border-radius: 20px;
+      z-index: 10;
+    }
+
+    .dynamic-island::after {
+      content: '';
+      position: absolute;
+      right: 16px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 8px;
+      height: 8px;
+      background: radial-gradient(circle at 40% 40%, #1a2a3a, #0a0a1a);
+      border-radius: 50%;
+      box-shadow: inset 0 0 2px rgba(50, 100, 150, 0.3);
+    }
+
+    /* Iframe scaling trick:
+       Render at native demo size, then scale to fit phone screen */
+    .iframe-wrapper {
+      width: var(--demo-width);
+      height: var(--demo-height);
+      transform: scale(calc(296 / 412));
+      transform-origin: top left;
+      position: absolute;
+      top: 0;
+      left: 0;
+    }
+
+    .iframe-wrapper iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+
+    /* Subtle glass reflection */
+    .screen-glare {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      border-radius: 38px;
+      pointer-events: none;
+      z-index: 5;
+      background: linear-gradient(
+        135deg,
+        rgba(255, 255, 255, 0.04) 0%,
+        transparent 35%,
+        transparent 100%
+      );
+    }
+  </style>
+</head>
+<body>
+  <div class="phone">
+    <div class="silent"></div>
+    <div class="vol-up"></div>
+    <div class="vol-down"></div>
+    <div class="screen">
+      <div class="dynamic-island"></div>
+      <div class="iframe-wrapper">
+        <iframe src="scene-reload.html" title="Loot — Reload Ceremony" allow="autoplay" scrolling="no"></iframe>
+      </div>
+      <div class="screen-glare"></div>
+    </div>
+  </div>
+</body>
+</html>
