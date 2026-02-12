@@ -730,6 +730,139 @@
     flex-shrink: 0;
   }
 
+  /* ── Coin Drag System ── */
+
+  .drag-coin {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, #f9e547, #f1c40f 40%, #d4a017 100%);
+    box-shadow:
+      0 2px 6px rgba(0,0,0,0.4),
+      inset 0 -2px 3px rgba(0,0,0,0.2),
+      inset 0 2px 3px rgba(255,255,255,0.3);
+    position: fixed;
+    pointer-events: none;
+    z-index: 10001;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 900;
+    color: #b8860b;
+    opacity: 0;
+  }
+
+  .coin-burst {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 2px solid rgba(249,229,71,0.6);
+    position: fixed;
+    pointer-events: none;
+    z-index: 10000;
+    opacity: 0;
+  }
+
+  .coin-burst.go {
+    animation: burstRing 0.4s ease-out forwards;
+  }
+
+  @keyframes burstRing {
+    0% { opacity: 0.8; transform: scale(0.3); }
+    100% { opacity: 0; transform: scale(2.5); }
+  }
+
+  .spark {
+    width: 4px;
+    height: 4px;
+    background: #f9e547;
+    border-radius: 50%;
+    position: fixed;
+    pointer-events: none;
+    z-index: 10000;
+    opacity: 0;
+  }
+
+  .spark.go {
+    animation: sparkFly 0.35s ease-out forwards;
+  }
+
+  @keyframes sparkFly {
+    0% { opacity: 1; transform: translate(0,0) scale(1); }
+    100% { opacity: 0; transform: translate(var(--sx), var(--sy)) scale(0); }
+  }
+
+  .trail-spark {
+    position: fixed;
+    pointer-events: none;
+    z-index: 99;
+    border-radius: 0;
+    background: #f9e547;
+    image-rendering: pixelated;
+    box-shadow:
+      0 0 0 1px rgba(241,196,15,0.6),
+      2px 2px 0 rgba(0,0,0,0.15);
+  }
+
+  .alloc-tile.drop-target {
+    box-shadow: 0 0 0 3px rgba(152,54,254,0.5);
+    transform: scale(1.05) !important;
+    transition: transform 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.15s ease !important;
+  }
+
+  .amount-badge {
+    position: fixed;
+    pointer-events: none;
+    z-index: 150;
+    font-size: 11px;
+    font-weight: 700;
+    font-family: "Nunito", sans-serif;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    opacity: 0;
+    padding: 2px 8px;
+    border-radius: 8px;
+  }
+
+  .amount-badge.minus {
+    color: #f87171;
+    background: rgba(248,113,113,0.15);
+    animation: floatAway 1.2s ease-out forwards;
+  }
+
+  .amount-badge.plus {
+    color: #4ade80;
+    background: rgba(74,222,128,0.15);
+    animation: floatAway 1.2s ease-out forwards;
+  }
+
+  @keyframes floatAway {
+    0% { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
+    70% { opacity: 0.7; transform: translateX(-50%) translateY(-30px) scale(1); }
+    100% { opacity: 0; transform: translateX(-50%) translateY(-45px) scale(0.95); }
+  }
+
+  .transfer-coin {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, #f9e547, #f1c40f 40%, #d4a017 100%);
+    box-shadow:
+      0 2px 6px rgba(0,0,0,0.4),
+      inset 0 -2px 3px rgba(0,0,0,0.2),
+      inset 0 2px 3px rgba(255,255,255,0.3);
+    position: fixed;
+    pointer-events: none;
+    z-index: 10001;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 900;
+    color: #b8860b;
+  }
+
   /* ── Confetti ── */
 
   .confetti-particle {
@@ -762,6 +895,10 @@
 <body>
 
 <div class="ceremony">
+  <!-- Drag coin + burst (shared across steps) -->
+  <div class="drag-coin" id="dragCoin">$</div>
+  <div class="coin-burst" id="coinBurst"></div>
+
   <!-- Progress Header -->
   <div class="progress-header">
     <div class="progress-text" id="progressText">Step 1 of 4</div>
@@ -864,7 +1001,7 @@
     <!-- Step 3: Allocation -->
     <div class="step" id="step-allocation" style="padding: 16px 16px 0;">
       <div class="alloc-title" id="allocTitle">Fill Your Envelopes</div>
-      <div class="alloc-subtitle" id="allocSubtitle">Tap to fill each envelope</div>
+      <div class="alloc-subtitle" id="allocSubtitle">Drag from Income to fill envelopes</div>
 
       <div class="income-section" id="incomeSection">
         <div class="income-tile" id="incomeTile">
@@ -890,7 +1027,7 @@
         </button>
       </div>
 
-      <div class="alloc-section-label" id="allocLabel">Tap to allocate</div>
+      <div class="alloc-section-label" id="allocLabel">Drag to allocate</div>
       <div class="alloc-grid" id="allocGrid"></div>
 
       <div style="flex:1;"></div>
@@ -968,49 +1105,11 @@ function fmtDollars(cents) {
   return `$${(Math.abs(cents) / 100).toLocaleString('en-NZ', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 }
 
-// ── Animation helpers (no GSAP dependency) ──
-function animateTo(el, props, duration = 400, easing = 'ease-out', delay = 0) {
-  return new Promise(resolve => {
-    setTimeout(() => {
-      const frames = [{}];
-      const target = {};
-      if ('opacity' in props) target.opacity = props.opacity;
-      if ('transform' in props) target.transform = props.transform;
-      if (props.x !== undefined || props.y !== undefined || props.scale !== undefined) {
-        const x = props.x ?? 0;
-        const y = props.y ?? 0;
-        const s = props.scale ?? 1;
-        target.transform = `translateX(${x}px) translateY(${y}px) scale(${s})`;
-      }
-      const anim = el.animate([target], {
-        duration,
-        easing,
-        fill: 'forwards',
-      });
-      anim.onfinish = () => {
-        Object.entries(target).forEach(([k, v]) => el.style[k] = v);
-        resolve();
-      };
-    }, delay);
-  });
-}
-
-function staggerIn(elements, duration = 500, stagger = 200) {
-  elements.forEach((el, i) => {
-    setTimeout(() => {
-      el.style.transition = `opacity ${duration}ms ease-out, transform ${duration}ms ease-out`;
-      el.style.opacity = '1';
-      el.style.transform = 'translateX(0) translateY(0) scale(1)';
-    }, i * stagger);
-  });
-}
-
 // ── Step navigation ──
 function goToStep(idx) {
   const prevEl = document.getElementById(`step-${steps[currentStep]}`);
   const nextEl = document.getElementById(`step-${steps[idx]}`);
 
-  // Fade out previous
   prevEl.style.transition = 'opacity 0.15s ease, transform 0.15s ease';
   prevEl.style.opacity = '0';
   prevEl.style.transform = 'translateX(-20px)';
@@ -1023,21 +1122,17 @@ function goToStep(idx) {
     currentStep = idx;
     updateProgress();
 
-    // Prepare next step
     nextEl.style.transition = 'none';
     nextEl.style.opacity = '0';
     nextEl.style.transform = 'translateX(40px)';
     nextEl.classList.add('active');
 
-    // Force reflow
     void nextEl.offsetWidth;
 
-    // Fade in
     nextEl.style.transition = 'opacity 0.25s ease-out, transform 0.25s ease-out';
     nextEl.style.opacity = '1';
     nextEl.style.transform = 'translateX(0)';
 
-    // Trigger step-specific animations
     setTimeout(() => animateStep(idx), 100);
   }, 150);
 }
@@ -1131,13 +1226,13 @@ function buildAllocation() {
       </div>
       <div class="box-bar"><div class="box-bar-fill" style="width:${fillPct}%;background:${env.color}"></div></div>
     `;
-    tile.addEventListener('click', () => {
-      // Simulate tap-to-allocate: fill to suggested
+    // Tap-to-allocate fallback
+    tile.addEventListener('click', (e) => {
+      if (dragDidTransfer) { dragDidTransfer = false; return; }
       const toAdd = Math.max(0, env.suggested - env.balance - allocations[i]);
       if (toAdd > 0) {
         allocations[i] += toAdd;
         updateAllocationUI();
-        // Bounce animation
         tile.animate([
           { transform: 'scale(1)' },
           { transform: 'scale(1.08)' },
@@ -1165,7 +1260,6 @@ function updateAllocationUI() {
   document.getElementById('btnComplete').style.background = total > 0 ? 'linear-gradient(135deg, #4ade80, #059669)' : '#32324d';
   document.getElementById('btnComplete').style.cursor = total > 0 ? 'pointer' : 'default';
 
-  // Update complete step text
   document.getElementById('completeSummary').textContent = `You allocated ${fmtDollars(total)} across ${envCount} envelopes`;
 
   buildAllocation();
@@ -1183,7 +1277,516 @@ function animateAllocation() {
   });
 }
 
+// ══════════════════════════════════════════════════════════
+// ── COIN DRAG SYSTEM (Income → Envelope) ──
+// ══════════════════════════════════════════════════════════
+
+const DRAG_LIMIT = 20;
+const POP_THRESHOLD = 80;
+const CREAK_INTERVAL_MAX = 120;
+const CREAK_INTERVAL_MIN = 25;
+const CREAK_BUZZ_MS = 8;
+const FLOAT_GRAVITY = 0.15;
+const FLOAT_DAMPING = 0.94;
+const FLOAT_MAX_DIST = 40;
+const FLOAT_WANDER = 0.3;
+
+const dragCoinEl = document.getElementById('dragCoin');
+const coinBurstEl = document.getElementById('coinBurst');
+
+let dragState = null;
+let lastCreakTime = 0;
+let currentDropTarget = null;
+let floatRAF = null;
+let coinVx = 0, coinVy = 0, coinX = 0, coinY = 0, coinRotation = 0;
+let trailInterval = null;
+let dragDidTransfer = false;
+
+function doCreak(tension) {
+  if (!navigator.vibrate) return;
+  const now = performance.now();
+  const interval = CREAK_INTERVAL_MAX - tension * (CREAK_INTERVAL_MAX - CREAK_INTERVAL_MIN);
+  if (now - lastCreakTime >= interval) {
+    const buzzDuration = Math.round(CREAK_BUZZ_MS + tension * 8);
+    navigator.vibrate(buzzDuration);
+    lastCreakTime = now;
+  }
+}
+
+function spawnBurst(cx, cy) {
+  coinBurstEl.style.left = `${cx - 20}px`;
+  coinBurstEl.style.top = `${cy - 20}px`;
+  coinBurstEl.className = 'coin-burst';
+  void coinBurstEl.offsetWidth;
+  coinBurstEl.className = 'coin-burst go';
+
+  for (let i = 0; i < 8; i++) {
+    const spark = document.createElement('div');
+    spark.className = 'spark';
+    const angle = (Math.PI * 2 / 8) * i + (Math.random() - 0.5) * 0.5;
+    const dist = 25 + Math.random() * 20;
+    spark.style.left = `${cx - 2}px`;
+    spark.style.top = `${cy - 2}px`;
+    spark.style.setProperty('--sx', `${Math.cos(angle) * dist}px`);
+    spark.style.setProperty('--sy', `${Math.sin(angle) * dist}px`);
+    document.body.appendChild(spark);
+    void spark.offsetWidth;
+    spark.classList.add('go');
+    spark.addEventListener('animationend', () => spark.remove());
+  }
+}
+
+function spawnTrailSpark(x, y) {
+  const spark = document.createElement('div');
+  spark.className = 'trail-spark';
+  const sizes = [3, 4, 5, 6];
+  const size = sizes[Math.floor(Math.random() * sizes.length)];
+  const gridSize = 4;
+  const spread = 16;
+  const dx = Math.round((Math.random() - 0.5) * spread / gridSize) * gridSize;
+  const dy = Math.round((Math.random() - 0.5) * spread / gridSize) * gridSize;
+
+  spark.style.width = `${size}px`;
+  spark.style.height = `${size}px`;
+  spark.style.left = `${Math.round(x / 2) * 2 + dx}px`;
+  spark.style.top = `${Math.round(y / 2) * 2 + dy}px`;
+  spark.style.opacity = '1';
+  document.body.appendChild(spark);
+
+  const driftX = Math.round((dx * 1.5 + (Math.random() - 0.5) * 12) / gridSize) * gridSize;
+  const driftY = Math.round((dy + 8 + Math.random() * 12) / gridSize) * gridSize;
+
+  spark.animate([
+    { opacity: 1, transform: 'translate(0, 0)' },
+    { opacity: 0.7, transform: `translate(${driftX * 0.5}px, ${driftY * 0.4}px)`, offset: 0.5 },
+    { opacity: 0, transform: `translate(${driftX}px, ${driftY}px)` },
+  ], { duration: 300 + Math.random() * 200, easing: 'steps(6)' }).onfinish = () => spark.remove();
+}
+
+function startTrail() {
+  if (trailInterval) return;
+  trailInterval = setInterval(() => {
+    if (!dragState || !dragState.coinPopped) return;
+    const cx = parseFloat(dragCoinEl.style.left) + 20;
+    const cy = parseFloat(dragCoinEl.style.top) + 20;
+    if (isNaN(cx) || isNaN(cy)) return;
+    for (let i = 0; i < 3; i++) spawnTrailSpark(cx, cy);
+  }, 20);
+}
+
+function stopTrail() {
+  clearInterval(trailInterval);
+  trailInterval = null;
+}
+
+function startOrbit() {
+  if (floatRAF) return;
+  coinX = dragState.pendingFingerX;
+  coinY = dragState.pendingFingerY;
+  const angle = Math.random() * Math.PI * 2;
+  coinVx = Math.cos(angle) * 3;
+  coinVy = Math.sin(angle) * 3;
+
+  function tick() {
+    if (!dragState || !dragState.coinPopped || dragState.coinPhase !== 'free') {
+      floatRAF = null;
+      return;
+    }
+    const targetX = dragState.pendingFingerX;
+    const targetY = dragState.pendingFingerY;
+    const dx = targetX - coinX;
+    const dy = targetY - coinY;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+
+    if (dist > 1) {
+      const pullStrength = FLOAT_GRAVITY * Math.min(dist / 20, 1.5);
+      coinVx += (dx / dist) * pullStrength;
+      coinVy += (dy / dist) * pullStrength;
+    }
+    coinVx += (Math.random() - 0.5) * FLOAT_WANDER;
+    coinVy += (Math.random() - 0.5) * FLOAT_WANDER;
+    coinVx *= FLOAT_DAMPING;
+    coinVy *= FLOAT_DAMPING;
+    coinX += coinVx;
+    coinY += coinVy;
+
+    if (dist > FLOAT_MAX_DIST) {
+      const pushBack = (dist - FLOAT_MAX_DIST) * 0.1;
+      coinX -= (coinX - targetX) / dist * pushBack;
+      coinY -= (coinY - targetY) / dist * pushBack;
+    }
+
+    const speed = Math.sqrt(coinVx * coinVx + coinVy * coinVy);
+    coinRotation += speed * 3;
+    const wobble = 0.7 * (1 + Math.sin(coinRotation * 0.1) * 0.08);
+
+    dragCoinEl.style.left = `${coinX - 20}px`;
+    dragCoinEl.style.top = `${coinY - 20}px`;
+    dragCoinEl.style.transform = `scale(${wobble}) rotate(${coinRotation}deg)`;
+    floatRAF = requestAnimationFrame(tick);
+  }
+  floatRAF = requestAnimationFrame(tick);
+}
+
+function stopOrbit() {
+  if (floatRAF) {
+    cancelAnimationFrame(floatRAF);
+    floatRAF = null;
+  }
+  coinVx = coinVy = 0;
+}
+
+function getDropTarget(x, y) {
+  const tiles = document.querySelectorAll('#allocGrid .alloc-tile');
+  for (const tile of tiles) {
+    const r = tile.getBoundingClientRect();
+    if (x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) {
+      return tile;
+    }
+  }
+  return null;
+}
+
+function spawnAmountBadge(el, text, type) {
+  const badge = document.createElement('div');
+  badge.className = `amount-badge ${type}`;
+  badge.textContent = text;
+  const rect = el.getBoundingClientRect();
+  badge.style.left = `${rect.left + rect.width / 2}px`;
+  badge.style.top = `${rect.top + rect.height / 2}px`;
+  document.body.appendChild(badge);
+  badge.addEventListener('animationend', () => badge.remove());
+}
+
+function transferCoinsToEnvelope(targetTile) {
+  const idx = parseInt(targetTile.dataset.index);
+  const env = envelopesDef[idx];
+  const toAdd = Math.max(0, env.suggested - env.balance - allocations[idx]);
+  if (toAdd <= 0) return;
+
+  dragDidTransfer = true;
+
+  const GRAVITY = 0.08;
+  const EMIT_SPEED = 2.0;
+  const EMIT_STAGGER = 70;
+  const ABSORB_RADIUS = 45;
+  const DRAG = 0.98;
+  const COIN_R = 16;
+
+  const incomeEl = document.querySelector('#incomeTile .alloc-tile');
+  const sr = incomeEl.getBoundingClientRect();
+  const tr = targetTile.getBoundingClientRect();
+  const sx = sr.left + sr.width / 2;
+  const sy = sr.top + sr.height / 2;
+  const tx = tr.left + tr.width / 2;
+  const ty = tr.top + tr.height / 2;
+
+  const COIN_COUNT = Math.max(3, Math.min(8, Math.round(toAdd / 5000)));
+  const perCoin = toAdd / COIN_COUNT;
+
+  // Deflate source
+  incomeEl.animate([
+    { transform: 'scale(1)' },
+    { transform: 'scale(0.88)', offset: 0.3 },
+    { transform: 'scale(0.92)', offset: 0.7 },
+    { transform: 'scale(1)' },
+  ], { duration: 1200, easing: 'ease-in-out' });
+
+  if (navigator.vibrate) navigator.vibrate(20);
+
+  spawnAmountBadge(incomeEl, `-${fmt(toAdd)}`, 'minus');
+  spawnAmountBadge(targetTile, `+${fmt(toAdd)}`, 'plus');
+
+  let landed = 0;
+  const particles = [];
+
+  for (let i = 0; i < COIN_COUNT; i++) {
+    const coin = document.createElement('div');
+    coin.className = 'transfer-coin';
+    coin.textContent = '$';
+    coin.style.opacity = '0';
+    document.body.appendChild(coin);
+
+    const angle = (Math.PI * 2 / COIN_COUNT) * i + (Math.random() - 0.5) * 0.6;
+    const speed = EMIT_SPEED * (0.8 + Math.random() * 0.4);
+
+    particles.push({
+      el: coin, x: sx, y: sy,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed,
+      scale: 0, rotation: 0,
+      rotSpeed: (Math.random() - 0.5) * 3,
+      alive: false, launched: false, trailFrame: 0,
+    });
+  }
+
+  particles.forEach((p, i) => {
+    setTimeout(() => {
+      p.alive = true;
+      p.launched = true;
+    }, i * EMIT_STAGGER);
+  });
+
+  function tick() {
+    let allDone = true;
+    for (const p of particles) {
+      if (!p.launched) { allDone = false; continue; }
+      if (!p.alive) continue;
+      allDone = false;
+
+      if (p.scale < 1) {
+        p.scale = Math.min(1, p.scale + 0.08);
+        p.el.style.opacity = '1';
+      }
+
+      const dx = tx - p.x;
+      const dy = ty - p.y;
+      const distSq = dx * dx + dy * dy;
+      const dist = Math.sqrt(distSq);
+
+      const force = GRAVITY * Math.max(1, 8000 / distSq);
+      p.vx += (dx / dist) * force;
+      p.vy += (dy / dist) * force;
+      p.vx += (dx / dist) * 0.25;
+      p.vy += (dy / dist) * 0.25;
+      p.vx *= DRAG;
+      p.vy *= DRAG;
+      p.x += p.vx;
+      p.y += p.vy;
+      p.rotation += p.rotSpeed;
+
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+      if (p.x < COIN_R) { p.x = COIN_R; p.vx = Math.abs(p.vx) * 0.6; }
+      if (p.x > vw - COIN_R) { p.x = vw - COIN_R; p.vx = -Math.abs(p.vx) * 0.6; }
+      if (p.y < COIN_R) { p.y = COIN_R; p.vy = Math.abs(p.vy) * 0.6; }
+      if (p.y > vh - COIN_R) { p.y = vh - COIN_R; p.vy = -Math.abs(p.vy) * 0.6; }
+
+      const approachScale = Math.min(1, dist / 60);
+      const renderScale = p.scale * (0.3 + approachScale * 0.7);
+
+      p.el.style.left = `${p.x - 14}px`;
+      p.el.style.top = `${p.y - 14}px`;
+      p.el.style.transform = `scale(${renderScale}) rotate(${p.rotation}deg)`;
+      p.el.style.opacity = Math.min(1, dist / 20);
+
+      p.trailFrame++;
+      const speed = Math.sqrt(p.vx * p.vx + p.vy * p.vy);
+      if (p.trailFrame % 3 === 0 && speed > 2 && dist > 50) {
+        spawnTrailSpark(p.x, p.y);
+      }
+
+      if (dist < ABSORB_RADIUS) {
+        p.alive = false;
+        p.el.remove();
+        landed++;
+
+        targetTile.animate([
+          { transform: 'scale(1)' },
+          { transform: `scale(${1.04 + (landed / COIN_COUNT) * 0.08})` },
+          { transform: 'scale(1)' },
+        ], { duration: 200, easing: 'cubic-bezier(0.175, 0.885, 0.32, 1.275)' });
+
+        if (navigator.vibrate) navigator.vibrate(8);
+
+        if (landed === COIN_COUNT) {
+          // Apply the allocation
+          allocations[idx] += toAdd;
+          updateAllocationUI();
+
+          targetTile.animate([
+            { transform: 'scale(1)' },
+            { transform: 'scale(1.15)' },
+            { transform: 'scale(0.96)' },
+            { transform: 'scale(1.04)' },
+            { transform: 'scale(1)' },
+          ], { duration: 350, easing: 'linear' });
+          if (navigator.vibrate) navigator.vibrate(25);
+        }
+      }
+    }
+    if (!allDone) requestAnimationFrame(tick);
+  }
+
+  requestAnimationFrame(tick);
+}
+
+// ── Income drag handlers ──
+function onIncomeDragDown(e) {
+  e.preventDefault();
+  const incomeInner = document.querySelector('#incomeTile .alloc-tile');
+  const rect = incomeInner.getBoundingClientRect();
+
+  dragState = {
+    startX: e.clientX,
+    startY: e.clientY,
+    boxCenterX: rect.left + rect.width / 2,
+    boxCenterY: rect.top + rect.height / 2,
+    coinPopped: false,
+    coinPhase: null,
+    pendingFingerX: e.clientX,
+    pendingFingerY: e.clientY,
+    lastDist: 0,
+    incomeEl: incomeInner,
+  };
+  lastCreakTime = 0;
+  startTrail();
+}
+
+function onDragMove(e) {
+  if (!dragState) return;
+
+  const dx = e.clientX - dragState.startX;
+  const dy = e.clientY - dragState.startY;
+  const dist = Math.sqrt(dx * dx + dy * dy);
+  const incomeEl = dragState.incomeEl;
+
+  if (!dragState.coinPopped) {
+    const factor = DRAG_LIMIT * (1 - Math.exp(-dist / (DRAG_LIMIT * 4)));
+    const angle = Math.atan2(dy, dx);
+    const moveX = Math.cos(angle) * factor;
+    const moveY = Math.sin(angle) * factor;
+
+    const tension = Math.min(dist / POP_THRESHOLD, 1);
+    const stretchAmount = 1 + tension * 0.25;
+    const squashAmount = 1 - tension * 0.12;
+    const angleDeg = angle * (180 / Math.PI);
+
+    incomeEl.style.transform = `translate(${moveX}px, ${moveY}px) rotate(${angleDeg}deg) scale(${stretchAmount}, ${squashAmount}) rotate(${-angleDeg}deg)`;
+
+    const creakTension = Math.max(0, (dist - POP_THRESHOLD * 0.2)) / (POP_THRESHOLD * 0.8);
+    if (creakTension > 0 && creakTension < 1) doCreak(Math.min(creakTension, 1));
+
+    dragState.lastDist = dist;
+
+    if (dist >= POP_THRESHOLD) {
+      dragState.coinPopped = true;
+
+      const currentTransform = incomeEl.style.transform;
+      const mx = Math.cos(angle) * factor;
+      const my = Math.sin(angle) * factor;
+
+      incomeEl.style.transition = 'none';
+      const snapAnim = incomeEl.animate([
+        { transform: currentTransform },
+        { transform: `translate(${-mx * 2.0}px, ${-my * 2.0}px) scale(0.85)`, offset: 0.12 },
+        { transform: `translate(${mx * 1.0}px, ${my * 1.0}px) scale(1.1)`, offset: 0.28 },
+        { transform: `translate(${-mx * 0.4}px, ${-my * 0.4}px) scale(0.93)`, offset: 0.44 },
+        { transform: `translate(${mx * 0.15}px, ${my * 0.15}px) scale(1.03)`, offset: 0.60 },
+        { transform: `translate(${-mx * 0.05}px, ${-my * 0.05}px) scale(0.99)`, offset: 0.78 },
+        { transform: 'translate(0, 0) scale(1)' },
+      ], { duration: 700, easing: 'linear', fill: 'forwards' });
+      snapAnim.onfinish = () => {
+        snapAnim.cancel();
+        incomeEl.style.transform = 'translate(0, 0) scale(1)';
+      };
+
+      const bx = dragState.boxCenterX;
+      const by = dragState.boxCenterY;
+      dragState.coinPhase = 'zipping';
+      dragState.pendingFingerX = e.clientX;
+      dragState.pendingFingerY = e.clientY;
+
+      dragCoinEl.style.transition = 'none';
+      dragCoinEl.style.left = `${bx - 20}px`;
+      dragCoinEl.style.top = `${by - 20}px`;
+      dragCoinEl.style.opacity = '1';
+      dragCoinEl.style.transform = 'scale(0.7)';
+
+      let zipX = bx;
+      let zipY = by;
+      const ZIP_SPEED = 0.35;
+
+      function zipTick() {
+        if (!dragState || dragState.coinPhase !== 'zipping') return;
+        const targetX = dragState.pendingFingerX;
+        const targetY = dragState.pendingFingerY;
+        zipX += (targetX - zipX) * ZIP_SPEED;
+        zipY += (targetY - zipY) * ZIP_SPEED;
+        dragCoinEl.style.left = `${zipX - 20}px`;
+        dragCoinEl.style.top = `${zipY - 20}px`;
+        const d = Math.sqrt((targetX - zipX) ** 2 + (targetY - zipY) ** 2);
+        if (d < 2) {
+          dragCoinEl.style.left = `${targetX - 20}px`;
+          dragCoinEl.style.top = `${targetY - 20}px`;
+          dragState.coinPhase = 'free';
+          startOrbit();
+          return;
+        }
+        requestAnimationFrame(zipTick);
+      }
+      requestAnimationFrame(zipTick);
+
+      spawnBurst(bx, by);
+      if (navigator.vibrate) navigator.vibrate([0, 10, 40]);
+    }
+  } else {
+    dragState.pendingFingerX = e.clientX;
+    dragState.pendingFingerY = e.clientY;
+
+    const hitTile = getDropTarget(e.clientX, e.clientY);
+
+    if (hitTile && hitTile !== currentDropTarget) {
+      if (currentDropTarget) currentDropTarget.classList.remove('drop-target');
+      hitTile.classList.add('drop-target');
+      currentDropTarget = hitTile;
+      if (navigator.vibrate) navigator.vibrate(8);
+    } else if (!hitTile && currentDropTarget) {
+      currentDropTarget.classList.remove('drop-target');
+      currentDropTarget = null;
+    }
+
+    if (dragState.coinPhase === 'free') {
+      dragCoinEl.style.transition = 'none';
+      dragCoinEl.style.opacity = '1';
+    }
+  }
+}
+
+function onDragUp(e) {
+  if (!dragState) return;
+
+  const wasPopped = dragState.coinPopped;
+  const targetTile = currentDropTarget;
+  const incomeEl = dragState.incomeEl;
+
+  if (dragState) dragState.coinPhase = 'dead';
+  stopOrbit();
+  stopTrail();
+
+  // Reset income tile transform
+  incomeEl.style.transition = 'transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+  incomeEl.style.transform = 'translate(0, 0) scale(1)';
+
+  // Hide drag coin
+  dragCoinEl.removeAttribute('style');
+  dragCoinEl.style.opacity = '0';
+
+  if (wasPopped && targetTile) {
+    targetTile.classList.remove('drop-target');
+    transferCoinsToEnvelope(targetTile);
+  }
+
+  if (targetTile) targetTile.classList.remove('drop-target');
+
+  dragState = null;
+  currentDropTarget = null;
+  lastCreakTime = 0;
+}
+
+// Attach income tile drag handlers
+const incomeTileEl = document.getElementById('incomeTile');
+incomeTileEl.style.touchAction = 'none';
+incomeTileEl.style.cursor = 'grab';
+incomeTileEl.addEventListener('pointerdown', onIncomeDragDown);
+window.addEventListener('pointermove', onDragMove);
+window.addEventListener('pointerup', onDragUp);
+window.addEventListener('pointercancel', onDragUp);
+
+// ══════════════════════════════════════════════════════════
 // ── Step 4: Complete ──
+// ══════════════════════════════════════════════════════════
+
 function animateComplete() {
   confettiBurst();
 
@@ -1247,7 +1850,7 @@ function confettiBurst(ox, oy) {
   if (navigator.vibrate) navigator.vibrate([50, 30, 50]);
 }
 
-// ── Coin stream ──
+// ── Coin stream (for Complete button) ──
 function coinStream(sx, sy, tx, ty, count, onDone) {
   let landed = 0;
   for (let i = 0; i < count; i++) {
@@ -1280,7 +1883,6 @@ function coinStream(sx, sy, tx, ty, count, onDone) {
 buildLeftovers();
 buildAllocation();
 
-// Animate step 1 on load
 setTimeout(() => animateDebrief(), 300);
 
 // ── Button handlers ──
@@ -1303,7 +1905,6 @@ document.getElementById('btnComplete').addEventListener('click', () => {
   const total = Object.values(allocations).reduce((s, v) => s + v, 0);
   if (total <= 0) return;
 
-  // Coin animation from income to each allocated envelope
   const incomeEl = document.getElementById('incomeTile');
   const incomeRect = incomeEl.getBoundingClientRect();
   const ix = incomeRect.left + incomeRect.width / 2;
@@ -1337,12 +1938,10 @@ document.getElementById('btnComplete').addEventListener('click', () => {
 });
 
 document.getElementById('btnFinish').addEventListener('click', () => {
-  // Reset and loop back to step 1
   allocations = {};
   envelopesDef.forEach((_, i) => allocations[i] = 0);
   updateAllocationUI();
 
-  // Reset debrief animations
   ['debriefIcon','debriefTitle','debriefSubtitle','debriefDate','statsRow','highlightsLabel','card0','card1','card2','btnDebrief'].forEach(id => {
     const el = document.getElementById(id);
     el.style.transition = 'none';
@@ -1355,7 +1954,6 @@ document.getElementById('btnFinish').addEventListener('click', () => {
   ['card0','card1','card2'].forEach(id => document.getElementById(id).style.transform = 'translateX(-40px)');
   document.getElementById('btnDebrief').style.transform = 'translateY(10px)';
 
-  // Reset complete animations
   document.getElementById('completeIcon').style.transition = 'none';
   document.getElementById('completeIcon').style.opacity = '0';
   document.getElementById('completeIcon').style.transform = 'scale(0.3)';
@@ -1375,14 +1973,12 @@ document.getElementById('btnFinish').addEventListener('click', () => {
   document.getElementById('btnFinish').style.opacity = '0';
   document.getElementById('btnFinish').style.transform = 'scale(0.9)';
 
-  // Reset leftovers
   document.getElementById('leftTitle').style.transition = 'none';
   document.getElementById('leftTitle').style.opacity = '0';
   document.getElementById('leftTitle').style.transform = 'translateY(-10px)';
   document.getElementById('leftSubtitle').style.transition = 'none';
   document.getElementById('leftSubtitle').style.opacity = '0';
 
-  // Reset allocation
   ['allocTitle','allocSubtitle','incomeSection','allocProgress','quickActions','allocLabel'].forEach(id => {
     const el = document.getElementById(id);
     el.style.transition = 'none';
