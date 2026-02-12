@@ -43,7 +43,7 @@
     flex-direction: column;
     align-items: center;
     gap: 8px;
-    padding: 24px 0 8px;
+    padding: 29px 0 8px;
     flex-shrink: 0;
   }
 
@@ -577,30 +577,6 @@
     margin-left: 3px;
   }
 
-  .alloc-tile .box-bar {
-    width: 60%;
-    height: 3px;
-    background: #32324d;
-    border-radius: 2px;
-    margin-top: 2px;
-    overflow: hidden;
-  }
-
-  .alloc-tile .box-bar-fill {
-    height: 100%;
-    border-radius: 2px;
-    transition: width 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-  }
-
-  .suggested-dot {
-    position: absolute;
-    top: 6px;
-    right: 6px;
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: #4ade80;
-  }
 
   .alloc-tile-suggested {
     font-size: 10px;
@@ -1917,14 +1893,12 @@ function buildAllocation() {
     const needsMore = suggested > balance;
     tile.innerHTML = `
       ${env.savings ? '<div class="savings-tag">Savings</div>' : ''}
-      <div class="suggested-dot" style="display:${allocations[i] === 0 && suggested > 0 ? 'block' : 'none'}"></div>
       <div class="alloc-tile-icon" style="background:${env.color}"><i class="${env.icon}"></i></div>
       <div class="alloc-tile-name">${env.name}</div>
       <div class="alloc-tile-amount">
         ${fmt(balance)}${allocations[i] > 0 ? `<span class="alloc-delta">+${fmt(allocations[i])}</span>` : ''}
       </div>
       <div class="alloc-tile-suggested">${needsMore ? `${fmtDollars(suggested)} suggested` : ''}</div>
-      <div class="box-bar"><div class="box-bar-fill" style="width:${fillPct}%;background:${env.color}"></div></div>
     `;
     // Click to open allocation drawer
     tile.addEventListener('click', () => openAllocDrawer(i));
