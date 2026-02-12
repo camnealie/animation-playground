@@ -398,10 +398,15 @@
   .income-tile {
     width: 140px;
     flex-shrink: 0;
+    touch-action: none;
+    cursor: grab;
+    -webkit-user-select: none;
+    user-select: none;
   }
 
   .income-tile .alloc-tile {
     border: 2px solid #9836fe;
+    touch-action: none;
   }
 
   .income-remaining {
@@ -1206,6 +1211,321 @@ function animateLeftovers() {
   setTimeout(() => { subtitle.style.transition = 'opacity 0.3s'; subtitle.style.opacity = '1'; }, 300);
 }
 
+// ── Step 2: Leftover Drag System ──
+let leftDragState = null;
+let leftDropTarget = null;
+let leftFloatRAF = null;
+let leftCoinVx = 0, leftCoinVy = 0, leftCoinX = 0, leftCoinY = 0, leftCoinRot = 0;
+let leftTrailInterval = null;
+let leftTransferred = new Set();
+
+function getLeftoverDropTarget(x, y) {
+  const targets = document.querySelectorAll('#targetGrid .target-tile');
+  for (const t of targets) {
+    const r = t.getBoundingClientRect();
+    if (x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) return t;
+  }
+  return null;
+}
+
+function startLeftOrbit() {
+  if (leftFloatRAF) return;
+  leftCoinX = leftDragState.pendingFingerX;
+  leftCoinY = leftDragState.pendingFingerY;
+  const a = Math.random() * Math.PI * 2;
+  leftCoinVx = Math.cos(a) * 3;
+  leftCoinVy = Math.sin(a) * 3;
+
+  function tick() {
+    if (!leftDragState || !leftDragState.coinPopped || leftDragState.coinPhase !== 'free') {
+      leftFloatRAF = null; return;
+    }
+    const tx = leftDragState.pendingFingerX, ty = leftDragState.pendingFingerY;
+    const dx = tx - leftCoinX, dy = ty - leftCoinY;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    if (dist > 1) {
+      const pull = FLOAT_GRAVITY * Math.min(dist / 20, 1.5);
+      leftCoinVx += (dx / dist) * pull;
+      leftCoinVy += (dy / dist) * pull;
+    }
+    leftCoinVx += (Math.random() - 0.5) * FLOAT_WANDER;
+    leftCoinVy += (Math.random() - 0.5) * FLOAT_WANDER;
+    leftCoinVx *= FLOAT_DAMPING;
+    leftCoinVy *= FLOAT_DAMPING;
+    leftCoinX += leftCoinVx;
+    leftCoinY += leftCoinVy;
+    if (dist > FLOAT_MAX_DIST) {
+      const pb = (dist - FLOAT_MAX_DIST) * 0.1;
+      leftCoinX -= (leftCoinX - tx) / dist * pb;
+      leftCoinY -= (leftCoinY - ty) / dist * pb;
+    }
+    const speed = Math.sqrt(leftCoinVx ** 2 + leftCoinVy ** 2);
+    leftCoinRot += speed * 3;
+    const wobble = 0.7 * (1 + Math.sin(leftCoinRot * 0.1) * 0.08);
+    dragCoinEl.style.left = `${leftCoinX - 20}px`;
+    dragCoinEl.style.top = `${leftCoinY - 20}px`;
+    dragCoinEl.style.transform = `scale(${wobble}) rotate(${leftCoinRot}deg)`;
+    leftFloatRAF = requestAnimationFrame(tick);
+  }
+  leftFloatRAF = requestAnimationFrame(tick);
+}
+
+function stopLeftOrbit() {
+  if (leftFloatRAF) { cancelAnimationFrame(leftFloatRAF); leftFloatRAF = null; }
+  leftCoinVx = leftCoinVy = 0;
+}
+
+function startLeftTrail() {
+  if (leftTrailInterval) return;
+  leftTrailInterval = setInterval(() => {
+    if (!leftDragState || !leftDragState.coinPopped) return;
+    const cx = parseFloat(dragCoinEl.style.left) + 20;
+    const cy = parseFloat(dragCoinEl.style.top) + 20;
+    if (isNaN(cx) || isNaN(cy)) return;
+    for (let i = 0; i < 3; i++) spawnTrailSpark(cx, cy);
+  }, 20);
+}
+
+function stopLeftTrail() {
+  clearInterval(leftTrailInterval); leftTrailInterval = null;
+}
+
+function transferLeftoverToTarget(sourceTile, targetTile) {
+  const srcIdx = parseInt(sourceTile.dataset.index);
+  const env = leftoversDef[srcIdx];
+  const amount = env.balance;
+
+  const GRAVITY = 0.08, EMIT_SPEED = 2.0, EMIT_STAGGER = 70, ABSORB_RADIUS = 45, DRAG_C = 0.98, COIN_R = 16;
+  const sr = sourceTile.getBoundingClientRect();
+  const tr = targetTile.getBoundingClientRect();
+  const sx = sr.left + sr.width / 2, sy = sr.top + sr.height / 2;
+  const tx = tr.left + tr.width / 2, ty = tr.top + tr.height / 2;
+  const COIN_COUNT = Math.max(3, Math.min(8, Math.round(amount / 3000)));
+
+  sourceTile.animate([
+    { transform: 'scale(1)' },
+    { transform: 'scale(0.88)', offset: 0.3 },
+    { transform: 'scale(0.92)', offset: 0.7 },
+    { transform: 'scale(1)' },
+  ], { duration: 1200, easing: 'ease-in-out' });
+
+  if (navigator.vibrate) navigator.vibrate(20);
+  spawnAmountBadge(sourceTile, `-${fmt(amount)}`, 'minus');
+  spawnAmountBadge(targetTile, `+${fmt(amount)}`, 'plus');
+
+  let landed = 0;
+  const particles = [];
+  for (let i = 0; i < COIN_COUNT; i++) {
+    const coin = document.createElement('div');
+    coin.className = 'transfer-coin'; coin.textContent = '$'; coin.style.opacity = '0';
+    document.body.appendChild(coin);
+    const angle = (Math.PI * 2 / COIN_COUNT) * i + (Math.random() - 0.5) * 0.6;
+    const speed = EMIT_SPEED * (0.8 + Math.random() * 0.4);
+    particles.push({ el: coin, x: sx, y: sy, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed, scale: 0, rotation: 0, rotSpeed: (Math.random() - 0.5) * 3, alive: false, launched: false, trailFrame: 0 });
+  }
+  particles.forEach((p, i) => { setTimeout(() => { p.alive = true; p.launched = true; }, i * EMIT_STAGGER); });
+
+  function tick() {
+    let allDone = true;
+    for (const p of particles) {
+      if (!p.launched) { allDone = false; continue; }
+      if (!p.alive) continue;
+      allDone = false;
+      if (p.scale < 1) { p.scale = Math.min(1, p.scale + 0.08); p.el.style.opacity = '1'; }
+      const dx = tx - p.x, dy = ty - p.y;
+      const distSq = dx * dx + dy * dy, dist = Math.sqrt(distSq);
+      const force = GRAVITY * Math.max(1, 8000 / distSq);
+      p.vx += (dx / dist) * force + (dx / dist) * 0.25;
+      p.vy += (dy / dist) * force + (dy / dist) * 0.25;
+      p.vx *= DRAG_C; p.vy *= DRAG_C;
+      p.x += p.vx; p.y += p.vy; p.rotation += p.rotSpeed;
+      const vw = window.innerWidth, vh = window.innerHeight;
+      if (p.x < COIN_R) { p.x = COIN_R; p.vx = Math.abs(p.vx) * 0.6; }
+      if (p.x > vw - COIN_R) { p.x = vw - COIN_R; p.vx = -Math.abs(p.vx) * 0.6; }
+      if (p.y < COIN_R) { p.y = COIN_R; p.vy = Math.abs(p.vy) * 0.6; }
+      if (p.y > vh - COIN_R) { p.y = vh - COIN_R; p.vy = -Math.abs(p.vy) * 0.6; }
+      const aScale = Math.min(1, dist / 60);
+      p.el.style.left = `${p.x - 14}px`; p.el.style.top = `${p.y - 14}px`;
+      p.el.style.transform = `scale(${p.scale * (0.3 + aScale * 0.7)}) rotate(${p.rotation}deg)`;
+      p.el.style.opacity = Math.min(1, dist / 20);
+      p.trailFrame++;
+      if (p.trailFrame % 3 === 0 && Math.sqrt(p.vx ** 2 + p.vy ** 2) > 2 && dist > 50) spawnTrailSpark(p.x, p.y);
+      if (dist < ABSORB_RADIUS) {
+        p.alive = false; p.el.remove(); landed++;
+        targetTile.animate([{ transform: 'scale(1)' }, { transform: `scale(${1.04 + (landed / COIN_COUNT) * 0.08})` }, { transform: 'scale(1)' }], { duration: 200, easing: 'cubic-bezier(0.175,0.885,0.32,1.275)' });
+        if (navigator.vibrate) navigator.vibrate(8);
+        if (landed === COIN_COUNT) {
+          leftTransferred.add(srcIdx);
+          sourceTile.classList.add('transferred');
+          // Update target balance
+          const targetIdx = parseInt(targetTile.dataset.target);
+          targetsDef[targetIdx].balance += amount;
+          targetTile.querySelector('.leftover-tile-amount').textContent = fmtDollars(targetsDef[targetIdx].balance);
+          // Also zero out source display
+          sourceTile.querySelector('.leftover-tile-amount').textContent = '$0';
+          targetTile.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.15)' }, { transform: 'scale(0.96)' }, { transform: 'scale(1.04)' }, { transform: 'scale(1)' }], { duration: 350, easing: 'linear' });
+          if (navigator.vibrate) navigator.vibrate(25);
+        }
+      }
+    }
+    if (!allDone) requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+}
+
+function onLeftoverDragDown(e) {
+  const tile = e.target.closest('.leftover-tile');
+  if (!tile || leftTransferred.has(parseInt(tile.dataset.index))) return;
+  e.preventDefault();
+  const clientX = e.clientX ?? e.touches?.[0]?.clientX;
+  const clientY = e.clientY ?? e.touches?.[0]?.clientY;
+  const rect = tile.getBoundingClientRect();
+  leftDragState = {
+    startX: clientX, startY: clientY,
+    boxCenterX: rect.left + rect.width / 2,
+    boxCenterY: rect.top + rect.height / 2,
+    coinPopped: false, coinPhase: null,
+    pendingFingerX: clientX, pendingFingerY: clientY,
+    lastDist: 0, tileEl: tile,
+  };
+  lastCreakTime = 0;
+  startLeftTrail();
+}
+
+function onLeftoverDragMove(e) {
+  if (!leftDragState) return;
+  e.preventDefault();
+  const clientX = e.clientX ?? e.touches?.[0]?.clientX ?? e.changedTouches?.[0]?.clientX;
+  const clientY = e.clientY ?? e.touches?.[0]?.clientY ?? e.changedTouches?.[0]?.clientY;
+
+  const dx = clientX - leftDragState.startX;
+  const dy = clientY - leftDragState.startY;
+  const dist = Math.sqrt(dx * dx + dy * dy);
+  const tile = leftDragState.tileEl;
+
+  if (!leftDragState.coinPopped) {
+    const factor = DRAG_LIMIT * (1 - Math.exp(-dist / (DRAG_LIMIT * 4)));
+    const angle = Math.atan2(dy, dx);
+    const moveX = Math.cos(angle) * factor;
+    const moveY = Math.sin(angle) * factor;
+    const tension = Math.min(dist / POP_THRESHOLD, 1);
+    const stretch = 1 + tension * 0.25;
+    const squash = 1 - tension * 0.12;
+    const deg = angle * (180 / Math.PI);
+    tile.style.transform = `translate(${moveX}px, ${moveY}px) rotate(${deg}deg) scale(${stretch}, ${squash}) rotate(${-deg}deg)`;
+
+    const creakT = Math.max(0, (dist - POP_THRESHOLD * 0.2)) / (POP_THRESHOLD * 0.8);
+    if (creakT > 0 && creakT < 1) doCreak(Math.min(creakT, 1));
+
+    if (dist >= POP_THRESHOLD) {
+      leftDragState.coinPopped = true;
+      const ct = tile.style.transform;
+      const mx = Math.cos(angle) * factor, my = Math.sin(angle) * factor;
+      tile.style.transition = 'none';
+      const snap = tile.animate([
+        { transform: ct },
+        { transform: `translate(${-mx*2}px, ${-my*2}px) scale(0.85)`, offset: 0.12 },
+        { transform: `translate(${mx}px, ${my}px) scale(1.1)`, offset: 0.28 },
+        { transform: `translate(${-mx*0.4}px, ${-my*0.4}px) scale(0.93)`, offset: 0.44 },
+        { transform: `translate(${mx*0.15}px, ${my*0.15}px) scale(1.03)`, offset: 0.60 },
+        { transform: 'translate(0,0) scale(1)' },
+      ], { duration: 700, easing: 'linear', fill: 'forwards' });
+      snap.onfinish = () => { snap.cancel(); tile.style.transform = 'translate(0,0) scale(1)'; };
+
+      const bx = leftDragState.boxCenterX, by = leftDragState.boxCenterY;
+      leftDragState.coinPhase = 'zipping';
+      leftDragState.pendingFingerX = clientX;
+      leftDragState.pendingFingerY = clientY;
+
+      dragCoinEl.style.transition = 'none';
+      dragCoinEl.style.left = `${bx - 20}px`;
+      dragCoinEl.style.top = `${by - 20}px`;
+      dragCoinEl.style.opacity = '1';
+      dragCoinEl.style.transform = 'scale(0.7)';
+
+      let zx = bx, zy = by;
+      function zipTick() {
+        if (!leftDragState || leftDragState.coinPhase !== 'zipping') return;
+        const ttx = leftDragState.pendingFingerX, tty = leftDragState.pendingFingerY;
+        zx += (ttx - zx) * 0.35; zy += (tty - zy) * 0.35;
+        dragCoinEl.style.left = `${zx - 20}px`; dragCoinEl.style.top = `${zy - 20}px`;
+        if (Math.sqrt((ttx - zx) ** 2 + (tty - zy) ** 2) < 2) {
+          dragCoinEl.style.left = `${ttx - 20}px`; dragCoinEl.style.top = `${tty - 20}px`;
+          leftDragState.coinPhase = 'free';
+          startLeftOrbit();
+          return;
+        }
+        requestAnimationFrame(zipTick);
+      }
+      requestAnimationFrame(zipTick);
+
+      spawnBurst(bx, by);
+      if (navigator.vibrate) navigator.vibrate([0, 10, 40]);
+    }
+  } else {
+    leftDragState.pendingFingerX = clientX;
+    leftDragState.pendingFingerY = clientY;
+
+    const hit = getLeftoverDropTarget(clientX, clientY);
+    if (hit && hit !== leftDropTarget) {
+      if (leftDropTarget) leftDropTarget.classList.remove('drop-highlight');
+      hit.classList.add('drop-highlight');
+      leftDropTarget = hit;
+      if (navigator.vibrate) navigator.vibrate(8);
+    } else if (!hit && leftDropTarget) {
+      leftDropTarget.classList.remove('drop-highlight');
+      leftDropTarget = null;
+    }
+
+    if (leftDragState.coinPhase === 'free') {
+      dragCoinEl.style.transition = 'none';
+      dragCoinEl.style.opacity = '1';
+    }
+  }
+}
+
+function onLeftoverDragUp(e) {
+  if (!leftDragState) return;
+  const wasPopped = leftDragState.coinPopped;
+  const target = leftDropTarget;
+  const tile = leftDragState.tileEl;
+
+  leftDragState.coinPhase = 'dead';
+  stopLeftOrbit();
+  stopLeftTrail();
+
+  tile.style.transition = 'transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+  tile.style.transform = 'translate(0, 0) scale(1)';
+
+  dragCoinEl.removeAttribute('style');
+  dragCoinEl.style.opacity = '0';
+
+  if (wasPopped && target) {
+    target.classList.remove('drop-highlight');
+    transferLeftoverToTarget(tile, target);
+  }
+  if (target) target.classList.remove('drop-highlight');
+
+  leftDragState = null;
+  leftDropTarget = null;
+}
+
+// Attach leftover drag handlers
+const leftoverGrid = document.getElementById('leftoverGrid');
+leftoverGrid.addEventListener('pointerdown', onLeftoverDragDown);
+leftoverGrid.addEventListener('touchstart', (e) => {
+  const tile = e.target.closest('.leftover-tile');
+  if (!tile || leftTransferred.has(parseInt(tile.dataset.index))) return;
+  onLeftoverDragDown(e);
+}, { passive: false });
+
+window.addEventListener('pointermove', (e) => { if (leftDragState) onLeftoverDragMove(e); });
+window.addEventListener('touchmove', (e) => { if (leftDragState) onLeftoverDragMove(e); }, { passive: false });
+window.addEventListener('pointerup', (e) => { if (leftDragState) onLeftoverDragUp(e); });
+window.addEventListener('touchend', (e) => { if (leftDragState) onLeftoverDragUp(e); }, { passive: false });
+window.addEventListener('pointercancel', (e) => { if (leftDragState) onLeftoverDragUp(e); });
+window.addEventListener('touchcancel', (e) => { if (leftDragState) onLeftoverDragUp(e); }, { passive: false });
+
 // ── Step 3: Allocation ──
 function buildAllocation() {
   const grid = document.getElementById('allocGrid');
@@ -1613,7 +1933,9 @@ function transferCoinsToEnvelope(targetTile) {
 
 // ── Income drag handlers ──
 function onIncomeDragDown(e) {
+  if (e.pointerType === 'touch') return; // let touchstart handle it
   e.preventDefault();
+  e.stopPropagation();
   const incomeInner = document.querySelector('#incomeTile .alloc-tile');
   const rect = incomeInner.getBoundingClientRect();
 
@@ -1776,12 +2098,65 @@ function onDragUp(e) {
 
 // Attach income tile drag handlers
 const incomeTileEl = document.getElementById('incomeTile');
-incomeTileEl.style.touchAction = 'none';
-incomeTileEl.style.cursor = 'grab';
+
+function extractXY(e) {
+  if (e.touches && e.touches.length > 0) {
+    return { clientX: e.touches[0].clientX, clientY: e.touches[0].clientY };
+  }
+  if (e.changedTouches && e.changedTouches.length > 0) {
+    return { clientX: e.changedTouches[0].clientX, clientY: e.changedTouches[0].clientY };
+  }
+  return { clientX: e.clientX, clientY: e.clientY };
+}
+
+function onTouchDragDown(e) {
+  e.preventDefault();
+  e.stopPropagation();
+  const { clientX, clientY } = extractXY(e);
+  const incomeInner = document.querySelector('#incomeTile .alloc-tile');
+  const rect = incomeInner.getBoundingClientRect();
+
+  dragState = {
+    startX: clientX,
+    startY: clientY,
+    boxCenterX: rect.left + rect.width / 2,
+    boxCenterY: rect.top + rect.height / 2,
+    coinPopped: false,
+    coinPhase: null,
+    pendingFingerX: clientX,
+    pendingFingerY: clientY,
+    lastDist: 0,
+    incomeEl: incomeInner,
+  };
+  lastCreakTime = 0;
+  startTrail();
+}
+
+function onTouchDragMove(e) {
+  if (!dragState) return;
+  e.preventDefault();
+  const { clientX, clientY } = extractXY(e);
+  onDragMove({ clientX, clientY });
+}
+
+function onTouchDragUp(e) {
+  if (!dragState) return;
+  e.preventDefault();
+  const { clientX, clientY } = extractXY(e);
+  onDragUp({ clientX, clientY });
+}
+
+// Pointer events (desktop / stylus)
 incomeTileEl.addEventListener('pointerdown', onIncomeDragDown);
 window.addEventListener('pointermove', onDragMove);
 window.addEventListener('pointerup', onDragUp);
 window.addEventListener('pointercancel', onDragUp);
+
+// Touch events (mobile fallback — some mobile browsers handle these better)
+incomeTileEl.addEventListener('touchstart', onTouchDragDown, { passive: false });
+window.addEventListener('touchmove', onTouchDragMove, { passive: false });
+window.addEventListener('touchend', onTouchDragUp, { passive: false });
+window.addEventListener('touchcancel', onTouchDragUp, { passive: false });
 
 // ══════════════════════════════════════════════════════════
 // ── Step 4: Complete ──
