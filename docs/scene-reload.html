@@ -1402,11 +1402,12 @@ const INCOME = 245000; // cents
 const envelopesDef = [
   { icon: 'ph-fill ph-credit-card', name: 'Recurring',   color: '#5ec98a', balance: 85000, suggested: 120000, savings: false },
   { icon: 'ph-fill ph-car',         name: 'Transport',   color: '#b070f0', balance: 12000, suggested: 40000,  savings: false },
-  { icon: 'ph-fill ph-user',        name: 'Appearance',  color: '#f0c050', balance: 0,     suggested: 25000,  savings: true },
+  { icon: 'ph-fill ph-user',        name: 'Appearance',  color: '#f0c050', balance: 0,     suggested: 25000,  savings: false },
   { icon: 'ph-fill ph-house',       name: 'Household',   color: '#5c9ee8', balance: 3400,  suggested: 150000, savings: false },
   { icon: 'ph-fill ph-fork-knife',  name: 'Dining Out',  color: '#e078a8', balance: 4800,  suggested: 45000,  savings: false },
   { icon: 'ph-fill ph-shopping-cart',name: 'Groceries',   color: '#48c8a0', balance: 6200,  suggested: 60000,  savings: false },
-  { icon: 'ph-fill ph-airplane',    name: 'Travel',      color: '#e8a060', balance: 0,     suggested: 30000,  savings: true },
+  { icon: 'ph-fill ph-airplane',    name: 'Travel',      color: '#e8a060', balance: 0,     suggested: 30000,  savings: false },
+  { icon: 'ph-fill ph-piggy-bank',  name: 'Savings',     color: '#4ade80', balance: 52000, suggested: 80000,  savings: true },
 ];
 
 const leftoversDef = [
@@ -1430,6 +1431,7 @@ const spendingHistory = [
   /* Dining Out */  [{ month: 'Dec', spent: 38000 },  { month: 'Jan', spent: 42000 },  { month: 'Feb', spent: 45000 }],
   /* Groceries */   [{ month: 'Dec', spent: 52000 },  { month: 'Jan', spent: 58000 },  { month: 'Feb', spent: 55000 }],
   /* Travel */      [{ month: 'Jan', spent: 25000 },  { month: 'Feb', spent: 18000 }],
+  /* Savings */     [{ month: 'Dec', spent: 60000 },  { month: 'Jan', spent: 75000 },  { month: 'Feb', spent: 70000 }],
 ];
 
 // ── State ──
