@@ -578,6 +578,27 @@
     background: #4ade80;
   }
 
+  .alloc-tile-suggested {
+    font-size: 10px;
+    font-weight: 600;
+    color: #606080;
+    margin-top: -2px;
+  }
+
+  .savings-tag {
+    position: absolute;
+    top: 5px;
+    left: 5px;
+    font-size: 8px;
+    font-weight: 700;
+    color: #4ade80;
+    background: rgba(74, 222, 128, 0.12);
+    padding: 1px 5px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+
   /* ── Step 4: Complete ── */
 
   .complete-icon {
@@ -1363,12 +1384,12 @@
   <div class="spending-chart" id="drawerChart"></div>
 
   <div class="drawer-controls">
-    <button class="drawer-btn-round" id="drawerMinus"><i class="ph-bold ph-minus"></i></button>
+    <button class="drawer-btn-round" id="drawerMinus"><i class="ph ph-minus" style="font-size:22px;"></i></button>
     <div class="drawer-amount-input-wrap">
       <span class="drawer-amount-prefix">$</span>
       <input class="drawer-amount-input" id="drawerInput" type="text" inputmode="numeric" placeholder="0">
     </div>
-    <button class="drawer-btn-round" id="drawerPlus"><i class="ph-bold ph-plus"></i></button>
+    <button class="drawer-btn-round" id="drawerPlus"><i class="ph ph-plus" style="font-size:22px;"></i></button>
   </div>
 
   <button class="btn-use-suggested" id="drawerSuggested"></button>
@@ -1379,13 +1400,13 @@
 // ── Data ──
 const INCOME = 245000; // cents
 const envelopesDef = [
-  { icon: 'ph-fill ph-credit-card', name: 'Recurring',   color: '#5ec98a', balance: 85000, suggested: 120000 },
-  { icon: 'ph-fill ph-car',         name: 'Transport',   color: '#b070f0', balance: 12000, suggested: 40000 },
-  { icon: 'ph-fill ph-user',        name: 'Appearance',  color: '#f0c050', balance: 0,     suggested: 25000 },
-  { icon: 'ph-fill ph-house',       name: 'Household',   color: '#5c9ee8', balance: 3400,  suggested: 150000 },
-  { icon: 'ph-fill ph-fork-knife',  name: 'Dining Out',  color: '#e078a8', balance: 4800,  suggested: 45000 },
-  { icon: 'ph-fill ph-shopping-cart',name: 'Groceries',   color: '#48c8a0', balance: 6200,  suggested: 60000 },
-  { icon: 'ph-fill ph-airplane',    name: 'Travel',      color: '#e8a060', balance: 0,     suggested: 30000 },
+  { icon: 'ph-fill ph-credit-card', name: 'Recurring',   color: '#5ec98a', balance: 85000, suggested: 120000, savings: false },
+  { icon: 'ph-fill ph-car',         name: 'Transport',   color: '#b070f0', balance: 12000, suggested: 40000,  savings: false },
+  { icon: 'ph-fill ph-user',        name: 'Appearance',  color: '#f0c050', balance: 0,     suggested: 25000,  savings: true },
+  { icon: 'ph-fill ph-house',       name: 'Household',   color: '#5c9ee8', balance: 3400,  suggested: 150000, savings: false },
+  { icon: 'ph-fill ph-fork-knife',  name: 'Dining Out',  color: '#e078a8', balance: 4800,  suggested: 45000,  savings: false },
+  { icon: 'ph-fill ph-shopping-cart',name: 'Groceries',   color: '#48c8a0', balance: 6200,  suggested: 60000,  savings: false },
+  { icon: 'ph-fill ph-airplane',    name: 'Travel',      color: '#e8a060', balance: 0,     suggested: 30000,  savings: true },
 ];
 
 const leftoversDef = [
@@ -1857,13 +1878,16 @@ function buildAllocation() {
     const balance = env.balance + allocations[i];
     const suggested = env.suggested;
     const fillPct = Math.min(100, (balance / suggested) * 100);
+    const needsMore = suggested > balance;
     tile.innerHTML = `
+      ${env.savings ? '<div class="savings-tag">Savings</div>' : ''}
       <div class="suggested-dot" style="display:${allocations[i] === 0 && suggested > 0 ? 'block' : 'none'}"></div>
       <div class="alloc-tile-icon" style="background:${env.color}"><i class="${env.icon}"></i></div>
       <div class="alloc-tile-name">${env.name}</div>
       <div class="alloc-tile-amount">
         ${fmt(balance)}${allocations[i] > 0 ? `<span class="alloc-delta">+${fmt(allocations[i])}</span>` : ''}
       </div>
+      <div class="alloc-tile-suggested">${needsMore ? `${fmtDollars(suggested)} suggested` : ''}</div>
       <div class="box-bar"><div class="box-bar-fill" style="width:${fillPct}%;background:${env.color}"></div></div>
     `;
     // Click to open allocation drawer
