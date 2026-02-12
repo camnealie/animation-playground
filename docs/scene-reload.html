@@ -895,6 +895,286 @@
     font-weight: 900;
     color: #b8860b;
   }
+
+  /* ── Allocation Drawer ── */
+
+  .drawer-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 2000;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease;
+  }
+  .drawer-backdrop.open { opacity: 1; pointer-events: auto; }
+
+  .alloc-drawer {
+    position: fixed;
+    left: 0; right: 0; bottom: 0;
+    background: #1a1a2e;
+    border-radius: 20px 20px 0 0;
+    z-index: 2001;
+    transform: translateY(100%);
+    transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    max-height: 85vh;
+    overflow-y: auto;
+    padding: 0 20px 24px;
+    -webkit-overflow-scrolling: touch;
+  }
+  .alloc-drawer.open { transform: translateY(0); }
+
+  .drawer-handle {
+    width: 40px;
+    height: 4px;
+    border-radius: 2px;
+    background: #444466;
+    margin: 12px auto 16px;
+  }
+
+  .drawer-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  .drawer-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 24px;
+    flex-shrink: 0;
+    box-shadow:
+      inset 0 3px 6px rgba(255,255,255,0.5),
+      inset 0 -3px 6px rgba(0,0,0,0.25),
+      0 4px 12px rgba(0,0,0,0.3);
+  }
+
+  .drawer-header-text { flex: 1; }
+
+  .drawer-env-name {
+    font-size: 18px;
+    font-weight: 600;
+    color: #f0f0f5;
+  }
+
+  .drawer-balance {
+    font-size: 13px;
+    color: #808098;
+    margin-top: 1px;
+  }
+
+  .drawer-close {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: #242438;
+    border: none;
+    color: #808098;
+    font-size: 18px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: background 0.15s;
+  }
+  .drawer-close:hover { background: #32324d; }
+
+  .drawer-section-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #808098;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 10px;
+  }
+
+  .spending-chart {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 20px;
+  }
+
+  .chart-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    padding: 4px 0;
+    border-radius: 6px;
+    transition: background 0.15s;
+  }
+  .chart-row:hover { background: rgba(255,255,255,0.03); }
+
+  .chart-month {
+    font-size: 12px;
+    color: #808098;
+    width: 28px;
+    text-align: right;
+    flex-shrink: 0;
+  }
+
+  .chart-bar-wrap {
+    flex: 1;
+    height: 20px;
+    background: #242438;
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .chart-bar-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .chart-amount {
+    font-size: 12px;
+    font-weight: 600;
+    color: #c0c0d0;
+    width: 48px;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    flex-shrink: 0;
+  }
+
+  .chart-chevron {
+    font-size: 14px;
+    color: #606080;
+    flex-shrink: 0;
+  }
+
+  .chart-divider {
+    border: none;
+    border-top: 1px dashed #32324d;
+    margin: 4px 0;
+  }
+
+  .chart-row.suggested .chart-month {
+    font-size: 11px;
+    font-weight: 600;
+    color: #4ade80;
+    width: 28px;
+  }
+
+  .chart-row.suggested .chart-bar-wrap {
+    border: 1px dashed rgba(74, 222, 128, 0.4);
+    background: transparent;
+  }
+
+  .chart-row.suggested .chart-bar-fill {
+    background: rgba(74, 222, 128, 0.35) !important;
+    opacity: 1 !important;
+  }
+
+  .chart-row.suggested .chart-amount {
+    color: #4ade80;
+    font-weight: 700;
+    font-size: 13px;
+  }
+
+  .drawer-controls {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    margin: 20px 0 16px;
+  }
+
+  .drawer-btn-round {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    border: none;
+    background: #242438;
+    color: #c0c0d0;
+    font-size: 22px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s, transform 0.1s;
+    flex-shrink: 0;
+  }
+  .drawer-btn-round:hover { background: #32324d; }
+  .drawer-btn-round:active { transform: scale(0.92); }
+  .drawer-btn-round:disabled { opacity: 0.3; cursor: default; }
+
+  .drawer-amount-input-wrap {
+    position: relative;
+    width: 120px;
+  }
+
+  .drawer-amount-prefix {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 20px;
+    font-weight: 600;
+    color: #606080;
+    pointer-events: none;
+  }
+
+  .drawer-amount-input {
+    width: 100%;
+    height: 52px;
+    background: #242438;
+    border: 2px solid #32324d;
+    border-radius: 10px;
+    color: #f0f0f5;
+    font-size: 26px;
+    font-weight: 700;
+    font-family: "Nunito", sans-serif;
+    text-align: center;
+    padding: 0 8px 0 28px;
+    outline: none;
+    font-variant-numeric: tabular-nums;
+    transition: border-color 0.2s;
+    -moz-appearance: textfield;
+  }
+  .drawer-amount-input::-webkit-outer-spin-button,
+  .drawer-amount-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+  .drawer-amount-input:focus { border-color: var(--drawer-color, #9836fe); }
+
+  .btn-use-suggested {
+    width: 100%;
+    height: 44px;
+    border-radius: 10px;
+    border: 1.5px solid #4ade80;
+    background: transparent;
+    color: #4ade80;
+    font-size: 14px;
+    font-weight: 600;
+    font-family: "Nunito", sans-serif;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .btn-use-suggested:hover { background: rgba(74, 222, 128, 0.08); }
+  .btn-use-suggested:disabled { opacity: 0.3; cursor: default; }
+
+  .btn-drawer-done {
+    width: 100%;
+    height: 52px;
+    border-radius: 12px;
+    border: none;
+    color: #fff;
+    font-size: 16px;
+    font-weight: 600;
+    font-family: "Nunito", sans-serif;
+    cursor: pointer;
+    margin-top: 12px;
+    transition: filter 0.15s;
+  }
+  .btn-drawer-done:hover { filter: brightness(1.1); }
+  .btn-drawer-done:active { transform: scale(0.98); }
 </style>
 </head>
 <body>
@@ -1066,6 +1346,35 @@
   </div>
 </div>
 
+<!-- Allocation Drawer -->
+<div class="drawer-backdrop" id="drawerBackdrop"></div>
+<div class="alloc-drawer" id="allocDrawer">
+  <div class="drawer-handle"></div>
+  <div class="drawer-header">
+    <div class="drawer-icon" id="drawerIcon"><i id="drawerIconI"></i></div>
+    <div class="drawer-header-text">
+      <div class="drawer-env-name" id="drawerName"></div>
+      <div class="drawer-balance" id="drawerBalance"></div>
+    </div>
+    <button class="drawer-close" id="drawerClose"><i class="ph ph-x"></i></button>
+  </div>
+
+  <div class="drawer-section-label">Spending History</div>
+  <div class="spending-chart" id="drawerChart"></div>
+
+  <div class="drawer-controls">
+    <button class="drawer-btn-round" id="drawerMinus"><i class="ph-bold ph-minus"></i></button>
+    <div class="drawer-amount-input-wrap">
+      <span class="drawer-amount-prefix">$</span>
+      <input class="drawer-amount-input" id="drawerInput" type="text" inputmode="numeric" placeholder="0">
+    </div>
+    <button class="drawer-btn-round" id="drawerPlus"><i class="ph-bold ph-plus"></i></button>
+  </div>
+
+  <button class="btn-use-suggested" id="drawerSuggested"></button>
+  <button class="btn-drawer-done" id="drawerDone">Done</button>
+</div>
+
 <script>
 // ── Data ──
 const INCOME = 245000; // cents
@@ -1089,6 +1398,17 @@ const leftoversDef = [
 const targetsDef = [
   { icon: 'ph-fill ph-bank', name: 'Income', color: '#9575cd', balance: INCOME },
   { icon: 'ph-fill ph-piggy-bank', name: 'Savings', color: '#4ade80', balance: 52000 },
+];
+
+// Fake spending history per envelope (cents)
+const spendingHistory = [
+  /* Recurring */   [{ month: 'Dec', spent: 118000 }, { month: 'Jan', spent: 121500 }, { month: 'Feb', spent: 115000 }],
+  /* Transport */   [{ month: 'Dec', spent: 28000 },  { month: 'Jan', spent: 35500 },  { month: 'Feb', spent: 32000 }],
+  /* Appearance */  [{ month: 'Dec', spent: 15000 },  { month: 'Jan', spent: 22000 },  { month: 'Feb', spent: 18000 }],
+  /* Household */   [{ month: 'Dec', spent: 135000 }, { month: 'Jan', spent: 148000 }, { month: 'Feb', spent: 142000 }],
+  /* Dining Out */  [{ month: 'Dec', spent: 38000 },  { month: 'Jan', spent: 42000 },  { month: 'Feb', spent: 45000 }],
+  /* Groceries */   [{ month: 'Dec', spent: 52000 },  { month: 'Jan', spent: 58000 },  { month: 'Feb', spent: 55000 }],
+  /* Travel */      [{ month: 'Jan', spent: 25000 },  { month: 'Feb', spent: 18000 }],
 ];
 
 // ── State ──
@@ -1546,20 +1866,10 @@ function buildAllocation() {
       </div>
       <div class="box-bar"><div class="box-bar-fill" style="width:${fillPct}%;background:${env.color}"></div></div>
     `;
-    // Tap-to-allocate fallback
+    // Click to open allocation drawer
     tile.addEventListener('click', (e) => {
       if (dragDidTransfer) { dragDidTransfer = false; return; }
-      const toAdd = Math.max(0, env.suggested - env.balance - allocations[i]);
-      if (toAdd > 0) {
-        allocations[i] += toAdd;
-        updateAllocationUI();
-        tile.animate([
-          { transform: 'scale(1)' },
-          { transform: 'scale(1.08)' },
-          { transform: 'scale(0.96)' },
-          { transform: 'scale(1)' },
-        ], { duration: 300, easing: 'ease-out' });
-      }
+      openAllocDrawer(i);
     });
     grid.appendChild(tile);
   });
@@ -1584,6 +1894,202 @@ function updateAllocationUI() {
 
   buildAllocation();
 }
+
+// ── Allocation Drawer ──
+let drawerEnvelopeIdx = null;
+
+function openAllocDrawer(idx) {
+  drawerEnvelopeIdx = idx;
+  const env = envelopesDef[idx];
+  const history = spendingHistory[idx] || [];
+  const balance = env.balance + allocations[idx];
+
+  // Set drawer color
+  const drawer = document.getElementById('allocDrawer');
+  drawer.style.setProperty('--drawer-color', env.color);
+
+  // Header
+  document.getElementById('drawerIcon').style.background = env.color;
+  document.getElementById('drawerIconI').className = env.icon;
+  document.getElementById('drawerName').textContent = env.name;
+  document.getElementById('drawerBalance').textContent = `Balance: ${fmtDollars(balance)}`;
+
+  // Spending chart
+  const chart = document.getElementById('drawerChart');
+  chart.innerHTML = '';
+  const maxSpend = Math.max(env.suggested, ...history.map(h => h.spent));
+
+  history.forEach((h, i) => {
+    const pct = maxSpend > 0 ? (h.spent / maxSpend) * 100 : 0;
+    const opacity = 0.5 + ((i / Math.max(1, history.length - 1)) * 0.45);
+    const row = document.createElement('div');
+    row.className = 'chart-row';
+    row.innerHTML = `
+      <span class="chart-month">${h.month}</span>
+      <div class="chart-bar-wrap"><div class="chart-bar-fill" style="width:0%;background:${env.color};opacity:${opacity}"></div></div>
+      <span class="chart-amount">${fmtDollars(h.spent)}</span>
+      <i class="ph ph-caret-right chart-chevron"></i>
+    `;
+    chart.appendChild(row);
+  });
+
+  // Divider + suggested row
+  const divider = document.createElement('hr');
+  divider.className = 'chart-divider';
+  chart.appendChild(divider);
+
+  const sugRow = document.createElement('div');
+  sugRow.className = 'chart-row suggested';
+  const sugPct = maxSpend > 0 ? (env.suggested / maxSpend) * 100 : 0;
+  sugRow.innerHTML = `
+    <span class="chart-month">Sug.</span>
+    <div class="chart-bar-wrap"><div class="chart-bar-fill" style="width:0%;background:#4ade80"></div></div>
+    <span class="chart-amount">${fmtDollars(env.suggested)}</span>
+    <span style="width:14px"></span>
+  `;
+  chart.appendChild(sugRow);
+
+  // Animate bars in
+  requestAnimationFrame(() => {
+    chart.querySelectorAll('.chart-bar-fill').forEach((bar, i) => {
+      const isLast = i === chart.querySelectorAll('.chart-bar-fill').length - 1;
+      const target = isLast ? sugPct : (history[i] ? (history[i].spent / maxSpend) * 100 : 0);
+      setTimeout(() => { bar.style.width = `${target}%`; }, 80 + i * 60);
+    });
+  });
+
+  // Amount input
+  const input = document.getElementById('drawerInput');
+  const currentDollars = Math.round(allocations[idx] / 100);
+  input.value = currentDollars > 0 ? currentDollars : '';
+
+  // Suggested button
+  const sugBtn = document.getElementById('drawerSuggested');
+  const sugToAdd = Math.max(0, env.suggested - env.balance - allocations[idx]);
+  const sugDollars = Math.round(sugToAdd / 100);
+  if (sugToAdd > 0) {
+    sugBtn.textContent = `Use Suggested ($${sugDollars})`;
+    sugBtn.disabled = false;
+    sugBtn.style.display = '';
+  } else {
+    sugBtn.textContent = 'Already at or above suggested';
+    sugBtn.disabled = true;
+    sugBtn.style.display = '';
+  }
+
+  // Done button color
+  document.getElementById('drawerDone').style.background = env.color;
+
+  // Minus button state
+  updateDrawerMinus();
+
+  // Open
+  document.getElementById('drawerBackdrop').classList.add('open');
+  drawer.classList.add('open');
+}
+
+function closeAllocDrawer() {
+  document.getElementById('drawerBackdrop').classList.remove('open');
+  document.getElementById('allocDrawer').classList.remove('open');
+  drawerEnvelopeIdx = null;
+}
+
+function getDrawerInputCents() {
+  const val = parseInt(document.getElementById('drawerInput').value) || 0;
+  return Math.max(0, val * 100);
+}
+
+function setDrawerAllocation(cents) {
+  if (drawerEnvelopeIdx === null) return;
+  allocations[drawerEnvelopeIdx] = Math.max(0, cents);
+  const dollars = Math.round(cents / 100);
+  document.getElementById('drawerInput').value = dollars > 0 ? dollars : '';
+  updateDrawerBalance();
+  updateDrawerMinus();
+  updateDrawerSuggested();
+}
+
+function updateDrawerBalance() {
+  if (drawerEnvelopeIdx === null) return;
+  const env = envelopesDef[drawerEnvelopeIdx];
+  const balance = env.balance + allocations[drawerEnvelopeIdx];
+  document.getElementById('drawerBalance').textContent = `Balance: ${fmtDollars(balance)}`;
+}
+
+function updateDrawerMinus() {
+  const btn = document.getElementById('drawerMinus');
+  const val = drawerEnvelopeIdx !== null ? allocations[drawerEnvelopeIdx] : 0;
+  btn.disabled = val <= 0;
+}
+
+function updateDrawerSuggested() {
+  if (drawerEnvelopeIdx === null) return;
+  const env = envelopesDef[drawerEnvelopeIdx];
+  const sugToAdd = Math.max(0, env.suggested - env.balance - allocations[drawerEnvelopeIdx]);
+  const sugBtn = document.getElementById('drawerSuggested');
+  if (sugToAdd > 0) {
+    sugBtn.textContent = `Use Suggested ($${Math.round(sugToAdd / 100)})`;
+    sugBtn.disabled = false;
+  } else {
+    sugBtn.textContent = 'Already at or above suggested';
+    sugBtn.disabled = true;
+  }
+}
+
+// Drawer event listeners
+document.getElementById('drawerBackdrop').addEventListener('click', () => {
+  applyDrawerAndClose();
+});
+document.getElementById('drawerClose').addEventListener('click', () => {
+  applyDrawerAndClose();
+});
+document.getElementById('drawerDone').addEventListener('click', () => {
+  applyDrawerAndClose();
+});
+
+function applyDrawerAndClose() {
+  if (drawerEnvelopeIdx !== null) {
+    allocations[drawerEnvelopeIdx] = getDrawerInputCents();
+    updateAllocationUI();
+  }
+  closeAllocDrawer();
+}
+
+document.getElementById('drawerMinus').addEventListener('click', () => {
+  if (drawerEnvelopeIdx === null) return;
+  const current = getDrawerInputCents();
+  setDrawerAllocation(Math.max(0, current - 2500)); // -$25
+});
+
+document.getElementById('drawerPlus').addEventListener('click', () => {
+  if (drawerEnvelopeIdx === null) return;
+  const current = getDrawerInputCents();
+  setDrawerAllocation(current + 2500); // +$25
+});
+
+document.getElementById('drawerSuggested').addEventListener('click', () => {
+  if (drawerEnvelopeIdx === null) return;
+  const env = envelopesDef[drawerEnvelopeIdx];
+  const toAdd = Math.max(0, env.suggested - env.balance);
+  setDrawerAllocation(toAdd);
+});
+
+document.getElementById('drawerInput').addEventListener('focus', (e) => {
+  e.target.select();
+});
+
+document.getElementById('drawerInput').addEventListener('input', (e) => {
+  e.target.value = e.target.value.replace(/[^0-9]/g, '');
+  updateDrawerMinus();
+});
+
+document.getElementById('drawerInput').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') {
+    applyDrawerAndClose();
+  } else if (e.key === 'Escape') {
+    closeAllocDrawer();
+  }
+});
 
 function animateAllocation() {
   const els = ['allocTitle', 'allocSubtitle', 'incomeSection', 'allocProgress', 'quickActions', 'allocLabel'];
