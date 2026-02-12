@@ -14,6 +14,7 @@ export default defineConfig({
         index4: resolve(__dirname, 'index4.html'),
         index5: resolve(__dirname, 'index5.html'),
         reload: resolve(__dirname, 'reload.html'),
+        demoMove: resolve(__dirname, 'demo-move.html'),
       },
     },
   },
