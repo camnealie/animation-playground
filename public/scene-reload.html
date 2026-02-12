@@ -398,15 +398,10 @@
   .income-tile {
     width: 140px;
     flex-shrink: 0;
-    touch-action: none;
-    cursor: grab;
-    -webkit-user-select: none;
-    user-select: none;
   }
 
   .income-tile .alloc-tile {
     border: 2px solid #9836fe;
-    touch-action: none;
   }
 
   .income-remaining {
@@ -417,14 +412,43 @@
     margin-top: 4px;
   }
 
+  .savings-overflow {
+    width: 140px;
+    flex-shrink: 0;
+    opacity: 0;
+    transform: translateX(-20px) scale(0.9);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+  }
+  .savings-overflow.visible {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+
+  .savings-overflow .alloc-tile {
+    border: 2px solid #4ade80;
+  }
+
+  .savings-overflow-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #fb923c;
+    text-align: center;
+    margin-top: 4px;
+  }
+
   .progress-bar-wrap {
     width: 100%;
     height: 8px;
+    flex-shrink: 0;
     border-radius: 4px;
     background: #32324d;
     margin-bottom: 12px;
     overflow: hidden;
     opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+  .progress-bar-wrap.visible {
+    opacity: 1;
   }
 
   .progress-bar-fill {
@@ -1307,7 +1331,7 @@
     <!-- Step 3: Allocation -->
     <div class="step" id="step-allocation" style="padding: 16px 16px 0;">
       <div class="alloc-title" id="allocTitle">Fill Your Envelopes</div>
-      <div class="alloc-subtitle" id="allocSubtitle">Drag from Income to fill envelopes</div>
+      <div class="alloc-subtitle" id="allocSubtitle">Tap each envelope to set your budget</div>
 
       <div class="income-section" id="incomeSection">
         <div class="income-tile" id="incomeTile">
@@ -1319,6 +1343,16 @@
             <div class="alloc-tile-amount" id="incomeAmount">$2,450</div>
           </div>
           <div class="income-remaining" id="incomeRemaining">$2,450 left</div>
+        </div>
+        <div class="savings-overflow" id="savingsOverflow" style="display:none;">
+          <div class="alloc-tile" style="border: 2px solid #4ade80;">
+            <div class="alloc-tile-icon" style="background: #4ade80;">
+              <i class="ph-fill ph-piggy-bank"></i>
+            </div>
+            <div class="alloc-tile-name">Savings</div>
+            <div class="alloc-tile-amount" id="savingsOverflowAmount">$0</div>
+          </div>
+          <div class="savings-overflow-label" id="savingsOverflowLabel">$0 from savings</div>
         </div>
       </div>
 
@@ -1333,7 +1367,7 @@
         </button>
       </div>
 
-      <div class="alloc-section-label" id="allocLabel">Drag to allocate</div>
+      <div class="alloc-section-label" id="allocLabel">Tap to allocate</div>
       <div class="alloc-grid" id="allocGrid"></div>
 
       <div style="flex:1;"></div>
@@ -1893,28 +1927,73 @@ function buildAllocation() {
       <div class="box-bar"><div class="box-bar-fill" style="width:${fillPct}%;background:${env.color}"></div></div>
     `;
     // Click to open allocation drawer
-    tile.addEventListener('click', (e) => {
-      if (dragDidTransfer) { dragDidTransfer = false; return; }
-      openAllocDrawer(i);
-    });
+    tile.addEventListener('click', () => openAllocDrawer(i));
     grid.appendChild(tile);
   });
 }
 
+// Savings envelope index (for overflow)
+const SAVINGS_IDX = envelopesDef.findIndex(e => e.savings);
+const SAVINGS_BALANCE = envelopesDef[SAVINGS_IDX].balance;
+
 function updateAllocationUI() {
   const total = Object.values(allocations).reduce((s, v) => s + v, 0);
   const remaining = INCOME - total;
+  const overBudget = remaining < 0;
+  const fromSavings = overBudget ? Math.abs(remaining) : 0;
   const pct = Math.min(100, (total / INCOME) * 100);
 
+  // Income display
   document.getElementById('incomeAmount').textContent = fmtDollars(INCOME);
-  document.getElementById('incomeRemaining').textContent = remaining > 0 ? `${fmtDollars(remaining)} left` : 'Fully allocated';
-  document.getElementById('incomeRemaining').style.color = remaining > 0 ? '#4ade80' : '#a0a0c0';
-  document.getElementById('allocProgressFill').style.width = `${pct}%`;
+  if (overBudget) {
+    document.getElementById('incomeRemaining').textContent = 'Over budget';
+    document.getElementById('incomeRemaining').style.color = '#fb923c';
+  } else if (remaining === 0) {
+    document.getElementById('incomeRemaining').textContent = 'Fully allocated';
+    document.getElementById('incomeRemaining').style.color = '#a0a0c0';
+  } else {
+    document.getElementById('incomeRemaining').textContent = `${fmtDollars(remaining)} left`;
+    document.getElementById('incomeRemaining').style.color = '#4ade80';
+  }
+
+  // Progress bar
+  const progressWrap = document.getElementById('allocProgress');
+  const progressFill = document.getElementById('allocProgressFill');
+  if (total > 0) progressWrap.classList.add('visible');
+  else progressWrap.classList.remove('visible');
+  progressFill.style.width = `${pct}%`;
+  if (overBudget) {
+    progressFill.style.background = '#fb923c';
+  } else if (pct >= 90) {
+    progressFill.style.background = '#4ade80';
+  } else {
+    progressFill.style.background = '#9836fe';
+  }
+
+  // Savings overflow
+  const overflowEl = document.getElementById('savingsOverflow');
+  if (overBudget && fromSavings <= SAVINGS_BALANCE) {
+    overflowEl.style.display = '';
+    requestAnimationFrame(() => overflowEl.classList.add('visible'));
+    document.getElementById('savingsOverflowAmount').textContent = fmtDollars(SAVINGS_BALANCE);
+    document.getElementById('savingsOverflowLabel').textContent = `${fmtDollars(fromSavings)} from savings`;
+    document.getElementById('savingsOverflowLabel').style.color = '#fb923c';
+  } else if (overBudget && fromSavings > SAVINGS_BALANCE) {
+    overflowEl.style.display = '';
+    requestAnimationFrame(() => overflowEl.classList.add('visible'));
+    document.getElementById('savingsOverflowAmount').textContent = fmtDollars(SAVINGS_BALANCE);
+    document.getElementById('savingsOverflowLabel').textContent = `Not enough!`;
+    document.getElementById('savingsOverflowLabel').style.color = '#f87171';
+  } else {
+    overflowEl.classList.remove('visible');
+    setTimeout(() => { if (!overflowEl.classList.contains('visible')) overflowEl.style.display = 'none'; }, 300);
+  }
 
   const envCount = Object.values(allocations).filter(v => v > 0).length;
+  const canComplete = total > 0 && fromSavings <= SAVINGS_BALANCE;
   document.getElementById('btnComplete').textContent = `Complete Budget (${fmtDollars(total)})`;
-  document.getElementById('btnComplete').style.background = total > 0 ? 'linear-gradient(135deg, #4ade80, #059669)' : '#32324d';
-  document.getElementById('btnComplete').style.cursor = total > 0 ? 'pointer' : 'default';
+  document.getElementById('btnComplete').style.background = canComplete ? 'linear-gradient(135deg, #4ade80, #059669)' : overBudget ? '#fb923c' : '#32324d';
+  document.getElementById('btnComplete').style.cursor = canComplete ? 'pointer' : 'default';
 
   document.getElementById('completeSummary').textContent = `You allocated ${fmtDollars(total)} across ${envCount} envelopes`;
 
@@ -2146,13 +2225,7 @@ const FLOAT_WANDER = 0.3;
 const dragCoinEl = document.getElementById('dragCoin');
 const coinBurstEl = document.getElementById('coinBurst');
 
-let dragState = null;
 let lastCreakTime = 0;
-let currentDropTarget = null;
-let floatRAF = null;
-let coinVx = 0, coinVy = 0, coinX = 0, coinY = 0, coinRotation = 0;
-let trailInterval = null;
-let dragDidTransfer = false;
 
 function doCreak(tension) {
   if (!navigator.vibrate) return;
@@ -2215,90 +2288,6 @@ function spawnTrailSpark(x, y) {
   ], { duration: 300 + Math.random() * 200, easing: 'steps(6)' }).onfinish = () => spark.remove();
 }
 
-function startTrail() {
-  if (trailInterval) return;
-  trailInterval = setInterval(() => {
-    if (!dragState || !dragState.coinPopped) return;
-    const cx = parseFloat(dragCoinEl.style.left) + 20;
-    const cy = parseFloat(dragCoinEl.style.top) + 20;
-    if (isNaN(cx) || isNaN(cy)) return;
-    for (let i = 0; i < 3; i++) spawnTrailSpark(cx, cy);
-  }, 20);
-}
-
-function stopTrail() {
-  clearInterval(trailInterval);
-  trailInterval = null;
-}
-
-function startOrbit() {
-  if (floatRAF) return;
-  coinX = dragState.pendingFingerX;
-  coinY = dragState.pendingFingerY;
-  const angle = Math.random() * Math.PI * 2;
-  coinVx = Math.cos(angle) * 3;
-  coinVy = Math.sin(angle) * 3;
-
-  function tick() {
-    if (!dragState || !dragState.coinPopped || dragState.coinPhase !== 'free') {
-      floatRAF = null;
-      return;
-    }
-    const targetX = dragState.pendingFingerX;
-    const targetY = dragState.pendingFingerY;
-    const dx = targetX - coinX;
-    const dy = targetY - coinY;
-    const dist = Math.sqrt(dx * dx + dy * dy);
-
-    if (dist > 1) {
-      const pullStrength = FLOAT_GRAVITY * Math.min(dist / 20, 1.5);
-      coinVx += (dx / dist) * pullStrength;
-      coinVy += (dy / dist) * pullStrength;
-    }
-    coinVx += (Math.random() - 0.5) * FLOAT_WANDER;
-    coinVy += (Math.random() - 0.5) * FLOAT_WANDER;
-    coinVx *= FLOAT_DAMPING;
-    coinVy *= FLOAT_DAMPING;
-    coinX += coinVx;
-    coinY += coinVy;
-
-    if (dist > FLOAT_MAX_DIST) {
-      const pushBack = (dist - FLOAT_MAX_DIST) * 0.1;
-      coinX -= (coinX - targetX) / dist * pushBack;
-      coinY -= (coinY - targetY) / dist * pushBack;
-    }
-
-    const speed = Math.sqrt(coinVx * coinVx + coinVy * coinVy);
-    coinRotation += speed * 3;
-    const wobble = 0.7 * (1 + Math.sin(coinRotation * 0.1) * 0.08);
-
-    dragCoinEl.style.left = `${coinX - 20}px`;
-    dragCoinEl.style.top = `${coinY - 20}px`;
-    dragCoinEl.style.transform = `scale(${wobble}) rotate(${coinRotation}deg)`;
-    floatRAF = requestAnimationFrame(tick);
-  }
-  floatRAF = requestAnimationFrame(tick);
-}
-
-function stopOrbit() {
-  if (floatRAF) {
-    cancelAnimationFrame(floatRAF);
-    floatRAF = null;
-  }
-  coinVx = coinVy = 0;
-}
-
-function getDropTarget(x, y) {
-  const tiles = document.querySelectorAll('#allocGrid .alloc-tile');
-  for (const tile of tiles) {
-    const r = tile.getBoundingClientRect();
-    if (x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) {
-      return tile;
-    }
-  }
-  return null;
-}
-
 function spawnAmountBadge(el, text, type) {
   const badge = document.createElement('div');
   badge.className = `amount-badge ${type}`;
@@ -2309,386 +2298,6 @@ function spawnAmountBadge(el, text, type) {
   document.body.appendChild(badge);
   badge.addEventListener('animationend', () => badge.remove());
 }
-
-function transferCoinsToEnvelope(targetTile) {
-  const idx = parseInt(targetTile.dataset.index);
-  const env = envelopesDef[idx];
-  const toAdd = Math.max(0, env.suggested - env.balance - allocations[idx]);
-  if (toAdd <= 0) return;
-
-  dragDidTransfer = true;
-
-  const GRAVITY = 0.08;
-  const EMIT_SPEED = 2.0;
-  const EMIT_STAGGER = 70;
-  const ABSORB_RADIUS = 45;
-  const DRAG = 0.98;
-  const COIN_R = 16;
-
-  const incomeEl = document.querySelector('#incomeTile .alloc-tile');
-  const sr = incomeEl.getBoundingClientRect();
-  const tr = targetTile.getBoundingClientRect();
-  const sx = sr.left + sr.width / 2;
-  const sy = sr.top + sr.height / 2;
-  const tx = tr.left + tr.width / 2;
-  const ty = tr.top + tr.height / 2;
-
-  const COIN_COUNT = Math.max(3, Math.min(8, Math.round(toAdd / 5000)));
-  const perCoin = toAdd / COIN_COUNT;
-
-  // Deflate source
-  incomeEl.animate([
-    { transform: 'scale(1)' },
-    { transform: 'scale(0.88)', offset: 0.3 },
-    { transform: 'scale(0.92)', offset: 0.7 },
-    { transform: 'scale(1)' },
-  ], { duration: 1200, easing: 'ease-in-out' });
-
-  if (navigator.vibrate) navigator.vibrate(20);
-
-  spawnAmountBadge(incomeEl, `-${fmt(toAdd)}`, 'minus');
-  spawnAmountBadge(targetTile, `+${fmt(toAdd)}`, 'plus');
-
-  let landed = 0;
-  const particles = [];
-
-  for (let i = 0; i < COIN_COUNT; i++) {
-    const coin = document.createElement('div');
-    coin.className = 'transfer-coin';
-    coin.textContent = '$';
-    coin.style.opacity = '0';
-    document.body.appendChild(coin);
-
-    const angle = (Math.PI * 2 / COIN_COUNT) * i + (Math.random() - 0.5) * 0.6;
-    const speed = EMIT_SPEED * (0.8 + Math.random() * 0.4);
-
-    particles.push({
-      el: coin, x: sx, y: sy,
-      vx: Math.cos(angle) * speed,
-      vy: Math.sin(angle) * speed,
-      scale: 0, rotation: 0,
-      rotSpeed: (Math.random() - 0.5) * 3,
-      alive: false, launched: false, trailFrame: 0,
-    });
-  }
-
-  particles.forEach((p, i) => {
-    setTimeout(() => {
-      p.alive = true;
-      p.launched = true;
-    }, i * EMIT_STAGGER);
-  });
-
-  function tick() {
-    let allDone = true;
-    for (const p of particles) {
-      if (!p.launched) { allDone = false; continue; }
-      if (!p.alive) continue;
-      allDone = false;
-
-      if (p.scale < 1) {
-        p.scale = Math.min(1, p.scale + 0.08);
-        p.el.style.opacity = '1';
-      }
-
-      const dx = tx - p.x;
-      const dy = ty - p.y;
-      const distSq = dx * dx + dy * dy;
-      const dist = Math.sqrt(distSq);
-
-      const force = GRAVITY * Math.max(1, 8000 / distSq);
-      p.vx += (dx / dist) * force;
-      p.vy += (dy / dist) * force;
-      p.vx += (dx / dist) * 0.25;
-      p.vy += (dy / dist) * 0.25;
-      p.vx *= DRAG;
-      p.vy *= DRAG;
-      p.x += p.vx;
-      p.y += p.vy;
-      p.rotation += p.rotSpeed;
-
-      const vw = window.innerWidth;
-      const vh = window.innerHeight;
-      if (p.x < COIN_R) { p.x = COIN_R; p.vx = Math.abs(p.vx) * 0.6; }
-      if (p.x > vw - COIN_R) { p.x = vw - COIN_R; p.vx = -Math.abs(p.vx) * 0.6; }
-      if (p.y < COIN_R) { p.y = COIN_R; p.vy = Math.abs(p.vy) * 0.6; }
-      if (p.y > vh - COIN_R) { p.y = vh - COIN_R; p.vy = -Math.abs(p.vy) * 0.6; }
-
-      const approachScale = Math.min(1, dist / 60);
-      const renderScale = p.scale * (0.3 + approachScale * 0.7);
-
-      p.el.style.left = `${p.x - 14}px`;
-      p.el.style.top = `${p.y - 14}px`;
-      p.el.style.transform = `scale(${renderScale}) rotate(${p.rotation}deg)`;
-      p.el.style.opacity = Math.min(1, dist / 20);
-
-      p.trailFrame++;
-      const speed = Math.sqrt(p.vx * p.vx + p.vy * p.vy);
-      if (p.trailFrame % 3 === 0 && speed > 2 && dist > 50) {
-        spawnTrailSpark(p.x, p.y);
-      }
-
-      if (dist < ABSORB_RADIUS) {
-        p.alive = false;
-        p.el.remove();
-        landed++;
-
-        targetTile.animate([
-          { transform: 'scale(1)' },
-          { transform: `scale(${1.04 + (landed / COIN_COUNT) * 0.08})` },
-          { transform: 'scale(1)' },
-        ], { duration: 200, easing: 'cubic-bezier(0.175, 0.885, 0.32, 1.275)' });
-
-        if (navigator.vibrate) navigator.vibrate(8);
-
-        if (landed === COIN_COUNT) {
-          // Apply the allocation
-          allocations[idx] += toAdd;
-          updateAllocationUI();
-
-          targetTile.animate([
-            { transform: 'scale(1)' },
-            { transform: 'scale(1.15)' },
-            { transform: 'scale(0.96)' },
-            { transform: 'scale(1.04)' },
-            { transform: 'scale(1)' },
-          ], { duration: 350, easing: 'linear' });
-          if (navigator.vibrate) navigator.vibrate(25);
-        }
-      }
-    }
-    if (!allDone) requestAnimationFrame(tick);
-  }
-
-  requestAnimationFrame(tick);
-}
-
-// ── Income drag handlers ──
-function onIncomeDragDown(e) {
-  if (e.pointerType === 'touch') return; // let touchstart handle it
-  e.preventDefault();
-  e.stopPropagation();
-  const incomeInner = document.querySelector('#incomeTile .alloc-tile');
-  const rect = incomeInner.getBoundingClientRect();
-
-  dragState = {
-    startX: e.clientX,
-    startY: e.clientY,
-    boxCenterX: rect.left + rect.width / 2,
-    boxCenterY: rect.top + rect.height / 2,
-    coinPopped: false,
-    coinPhase: null,
-    pendingFingerX: e.clientX,
-    pendingFingerY: e.clientY,
-    lastDist: 0,
-    incomeEl: incomeInner,
-  };
-  lastCreakTime = 0;
-  startTrail();
-}
-
-function onDragMove(e) {
-  if (!dragState) return;
-
-  const dx = e.clientX - dragState.startX;
-  const dy = e.clientY - dragState.startY;
-  const dist = Math.sqrt(dx * dx + dy * dy);
-  const incomeEl = dragState.incomeEl;
-
-  if (!dragState.coinPopped) {
-    const factor = DRAG_LIMIT * (1 - Math.exp(-dist / (DRAG_LIMIT * 4)));
-    const angle = Math.atan2(dy, dx);
-    const moveX = Math.cos(angle) * factor;
-    const moveY = Math.sin(angle) * factor;
-
-    const tension = Math.min(dist / POP_THRESHOLD, 1);
-    const stretchAmount = 1 + tension * 0.25;
-    const squashAmount = 1 - tension * 0.12;
-    const angleDeg = angle * (180 / Math.PI);
-
-    incomeEl.style.transform = `translate(${moveX}px, ${moveY}px) rotate(${angleDeg}deg) scale(${stretchAmount}, ${squashAmount}) rotate(${-angleDeg}deg)`;
-
-    const creakTension = Math.max(0, (dist - POP_THRESHOLD * 0.2)) / (POP_THRESHOLD * 0.8);
-    if (creakTension > 0 && creakTension < 1) doCreak(Math.min(creakTension, 1));
-
-    dragState.lastDist = dist;
-
-    if (dist >= POP_THRESHOLD) {
-      dragState.coinPopped = true;
-
-      const currentTransform = incomeEl.style.transform;
-      const mx = Math.cos(angle) * factor;
-      const my = Math.sin(angle) * factor;
-
-      incomeEl.style.transition = 'none';
-      const snapAnim = incomeEl.animate([
-        { transform: currentTransform },
-        { transform: `translate(${-mx * 2.0}px, ${-my * 2.0}px) scale(0.85)`, offset: 0.12 },
-        { transform: `translate(${mx * 1.0}px, ${my * 1.0}px) scale(1.1)`, offset: 0.28 },
-        { transform: `translate(${-mx * 0.4}px, ${-my * 0.4}px) scale(0.93)`, offset: 0.44 },
-        { transform: `translate(${mx * 0.15}px, ${my * 0.15}px) scale(1.03)`, offset: 0.60 },
-        { transform: `translate(${-mx * 0.05}px, ${-my * 0.05}px) scale(0.99)`, offset: 0.78 },
-        { transform: 'translate(0, 0) scale(1)' },
-      ], { duration: 700, easing: 'linear', fill: 'forwards' });
-      snapAnim.onfinish = () => {
-        snapAnim.cancel();
-        incomeEl.style.transform = 'translate(0, 0) scale(1)';
-      };
-
-      const bx = dragState.boxCenterX;
-      const by = dragState.boxCenterY;
-      dragState.coinPhase = 'zipping';
-      dragState.pendingFingerX = e.clientX;
-      dragState.pendingFingerY = e.clientY;
-
-      dragCoinEl.style.transition = 'none';
-      dragCoinEl.style.left = `${bx - 20}px`;
-      dragCoinEl.style.top = `${by - 20}px`;
-      dragCoinEl.style.opacity = '1';
-      dragCoinEl.style.transform = 'scale(0.7)';
-
-      let zipX = bx;
-      let zipY = by;
-      const ZIP_SPEED = 0.35;
-
-      function zipTick() {
-        if (!dragState || dragState.coinPhase !== 'zipping') return;
-        const targetX = dragState.pendingFingerX;
-        const targetY = dragState.pendingFingerY;
-        zipX += (targetX - zipX) * ZIP_SPEED;
-        zipY += (targetY - zipY) * ZIP_SPEED;
-        dragCoinEl.style.left = `${zipX - 20}px`;
-        dragCoinEl.style.top = `${zipY - 20}px`;
-        const d = Math.sqrt((targetX - zipX) ** 2 + (targetY - zipY) ** 2);
-        if (d < 2) {
-          dragCoinEl.style.left = `${targetX - 20}px`;
-          dragCoinEl.style.top = `${targetY - 20}px`;
-          dragState.coinPhase = 'free';
-          startOrbit();
-          return;
-        }
-        requestAnimationFrame(zipTick);
-      }
-      requestAnimationFrame(zipTick);
-
-      spawnBurst(bx, by);
-      if (navigator.vibrate) navigator.vibrate([0, 10, 40]);
-    }
-  } else {
-    dragState.pendingFingerX = e.clientX;
-    dragState.pendingFingerY = e.clientY;
-
-    const hitTile = getDropTarget(e.clientX, e.clientY);
-
-    if (hitTile && hitTile !== currentDropTarget) {
-      if (currentDropTarget) currentDropTarget.classList.remove('drop-target');
-      hitTile.classList.add('drop-target');
-      currentDropTarget = hitTile;
-      if (navigator.vibrate) navigator.vibrate(8);
-    } else if (!hitTile && currentDropTarget) {
-      currentDropTarget.classList.remove('drop-target');
-      currentDropTarget = null;
-    }
-
-    if (dragState.coinPhase === 'free') {
-      dragCoinEl.style.transition = 'none';
-      dragCoinEl.style.opacity = '1';
-    }
-  }
-}
-
-function onDragUp(e) {
-  if (!dragState) return;
-
-  const wasPopped = dragState.coinPopped;
-  const targetTile = currentDropTarget;
-  const incomeEl = dragState.incomeEl;
-
-  if (dragState) dragState.coinPhase = 'dead';
-  stopOrbit();
-  stopTrail();
-
-  // Reset income tile transform
-  incomeEl.style.transition = 'transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
-  incomeEl.style.transform = 'translate(0, 0) scale(1)';
-
-  // Hide drag coin
-  dragCoinEl.removeAttribute('style');
-  dragCoinEl.style.opacity = '0';
-
-  if (wasPopped && targetTile) {
-    targetTile.classList.remove('drop-target');
-    transferCoinsToEnvelope(targetTile);
-  }
-
-  if (targetTile) targetTile.classList.remove('drop-target');
-
-  dragState = null;
-  currentDropTarget = null;
-  lastCreakTime = 0;
-}
-
-// Attach income tile drag handlers
-const incomeTileEl = document.getElementById('incomeTile');
-
-function extractXY(e) {
-  if (e.touches && e.touches.length > 0) {
-    return { clientX: e.touches[0].clientX, clientY: e.touches[0].clientY };
-  }
-  if (e.changedTouches && e.changedTouches.length > 0) {
-    return { clientX: e.changedTouches[0].clientX, clientY: e.changedTouches[0].clientY };
-  }
-  return { clientX: e.clientX, clientY: e.clientY };
-}
-
-function onTouchDragDown(e) {
-  e.preventDefault();
-  e.stopPropagation();
-  const { clientX, clientY } = extractXY(e);
-  const incomeInner = document.querySelector('#incomeTile .alloc-tile');
-  const rect = incomeInner.getBoundingClientRect();
-
-  dragState = {
-    startX: clientX,
-    startY: clientY,
-    boxCenterX: rect.left + rect.width / 2,
-    boxCenterY: rect.top + rect.height / 2,
-    coinPopped: false,
-    coinPhase: null,
-    pendingFingerX: clientX,
-    pendingFingerY: clientY,
-    lastDist: 0,
-    incomeEl: incomeInner,
-  };
-  lastCreakTime = 0;
-  startTrail();
-}
-
-function onTouchDragMove(e) {
-  if (!dragState) return;
-  e.preventDefault();
-  const { clientX, clientY } = extractXY(e);
-  onDragMove({ clientX, clientY });
-}
-
-function onTouchDragUp(e) {
-  if (!dragState) return;
-  e.preventDefault();
-  const { clientX, clientY } = extractXY(e);
-  onDragUp({ clientX, clientY });
-}
-
-// Pointer events (desktop / stylus)
-incomeTileEl.addEventListener('pointerdown', onIncomeDragDown);
-window.addEventListener('pointermove', onDragMove);
-window.addEventListener('pointerup', onDragUp);
-window.addEventListener('pointercancel', onDragUp);
-
-// Touch events (mobile fallback — some mobile browsers handle these better)
-incomeTileEl.addEventListener('touchstart', onTouchDragDown, { passive: false });
-window.addEventListener('touchmove', onTouchDragMove, { passive: false });
-window.addEventListener('touchend', onTouchDragUp, { passive: false });
-window.addEventListener('touchcancel', onTouchDragUp, { passive: false });
 
 // ══════════════════════════════════════════════════════════
 // ── Step 4: Complete ──
