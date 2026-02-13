@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Loot — Coin Spin</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      background: transparent;
+      overflow: hidden;
+    }
+
+    .scene {
+      position: relative;
+      width: 120px;
+      height: 140px;
+      perspective: 400px;
+    }
+
+    .coin-wrapper {
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 120px;
+      height: 120px;
+      transform-style: preserve-3d;
+    }
+
+    .coin-wrapper img {
+      width: 100%;
+      height: 100%;
+      image-rendering: pixelated;
+      display: block;
+    }
+
+    /* Shadow underneath */
+    .shadow {
+      position: absolute;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 80px;
+      height: 16px;
+      border-radius: 50%;
+      background: radial-gradient(ellipse, rgba(0,0,0,0.3) 0%, transparent 70%);
+    }
+
+    /* Sparkle particles */
+    .sparkle {
+      position: absolute;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #ffd700;
+      opacity: 0;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="scene">
+    <div class="coin-wrapper" id="coin">
+      <img src="coin.png" alt="Loot coin" />
+    </div>
+    <div class="shadow" id="shadow"></div>
+    <!-- Sparkles -->
+    <div class="sparkle" id="sp1"></div>
+    <div class="sparkle" id="sp2"></div>
+    <div class="sparkle" id="sp3"></div>
+    <div class="sparkle" id="sp4"></div>
+    <div class="sparkle" id="sp5"></div>
+    <div class="sparkle" id="sp6"></div>
+  </div>
+
+  <script>
+    const coin = document.getElementById('coin');
+    const shadow = document.getElementById('shadow');
+    let hasPlayed = false;
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting && !hasPlayed) {
+          hasPlayed = true;
+          observer.disconnect();
+          playAnimation();
+        }
+      });
+    }, { threshold: 0.3 });
+
+    observer.observe(document.querySelector('.scene'));
+
+    function playAnimation() {
+      const tl = gsap.timeline({ delay: 0.2 });
+
+      // Coin starts above, drops in with a bounce
+      gsap.set(coin, { y: -80, opacity: 0 });
+      gsap.set(shadow, { opacity: 0, scale: 0.5 });
+
+      // Drop in
+      tl.to(coin, {
+        y: 0,
+        opacity: 1,
+        duration: 0.4,
+        ease: 'power2.in',
+      });
+
+      // Shadow appears as coin lands
+      tl.to(shadow, {
+        opacity: 1,
+        scale: 1,
+        duration: 0.2,
+        ease: 'power2.out',
+      }, '-=0.1');
+
+      // First bounce up
+      tl.to(coin, {
+        y: -20,
+        duration: 0.25,
+        ease: 'power2.out',
+      });
+      tl.to(shadow, {
+        scale: 0.7,
+        opacity: 0.6,
+        duration: 0.25,
+        ease: 'power2.out',
+      }, '-=0.25');
+
+      // Back down
+      tl.to(coin, {
+        y: 0,
+        duration: 0.2,
+        ease: 'power2.in',
+      });
+      tl.to(shadow, {
+        scale: 1,
+        opacity: 1,
+        duration: 0.2,
+        ease: 'power2.in',
+      }, '-=0.2');
+
+      // Tiny second bounce
+      tl.to(coin, {
+        y: -6,
+        duration: 0.12,
+        ease: 'power2.out',
+      });
+      tl.to(coin, {
+        y: 0,
+        duration: 0.1,
+        ease: 'power2.in',
+      });
+
+      // Sparkle burst on final land
+      tl.add(() => burstSparkles(), '-=0.05');
+
+      // Pause, then start the idle arcade spin
+      tl.add(() => startIdleSpin(), '+=0.6');
+    }
+
+    function burstSparkles() {
+      const sparkles = document.querySelectorAll('.sparkle');
+      sparkles.forEach((sp, i) => {
+        const angle = (i / sparkles.length) * Math.PI * 2;
+        const dist = 35 + Math.random() * 20;
+        gsap.set(sp, {
+          x: 60, // center of scene
+          y: 60,
+          opacity: 1,
+          scale: 0.8 + Math.random() * 0.8,
+        });
+        gsap.to(sp, {
+          x: 60 + Math.cos(angle) * dist,
+          y: 60 + Math.sin(angle) * dist,
+          opacity: 0,
+          scale: 0,
+          duration: 0.5 + Math.random() * 0.3,
+          ease: 'power2.out',
+        });
+      });
+    }
+
+    function startIdleSpin() {
+      // Mario-style spin: scale X to simulate 3D flip
+      gsap.to(coin, {
+        scaleX: 1,
+        duration: 0.001,
+      });
+
+      const spinTl = gsap.timeline({ repeat: -1, repeatDelay: 2.5 });
+
+      // Gentle float up
+      spinTl.to(coin, {
+        y: -12,
+        duration: 0.3,
+        ease: 'power2.out',
+      });
+
+      // Shadow shrinks while floating
+      spinTl.to(shadow, {
+        scale: 0.6,
+        opacity: 0.5,
+        duration: 0.3,
+        ease: 'power2.out',
+      }, '<');
+
+      // Spin sequence — squash to line and back, multiple times
+      spinTl.to(coin, { scaleX: 0.05, duration: 0.08, ease: 'power1.in' });
+      spinTl.to(coin, { scaleX: 1, duration: 0.08, ease: 'power1.out' });
+      spinTl.to(coin, { scaleX: 0.05, duration: 0.08, ease: 'power1.in' });
+      spinTl.to(coin, { scaleX: 1, duration: 0.08, ease: 'power1.out' });
+      spinTl.to(coin, { scaleX: 0.05, duration: 0.08, ease: 'power1.in' });
+      spinTl.to(coin, { scaleX: 1, duration: 0.08, ease: 'power1.out' });
+      spinTl.to(coin, { scaleX: 0.05, duration: 0.08, ease: 'power1.in' });
+      spinTl.to(coin, { scaleX: 1, duration: 0.08, ease: 'power1.out' });
+
+      // Float back down
+      spinTl.to(coin, {
+        y: 0,
+        duration: 0.3,
+        ease: 'power2.in',
+      }, '+=0.05');
+
+      // Shadow returns
+      spinTl.to(shadow, {
+        scale: 1,
+        opacity: 1,
+        duration: 0.3,
+        ease: 'power2.in',
+      }, '<');
+
+      // Mini sparkle on land
+      spinTl.add(() => burstSparkles());
+    }
+  </script>
+</body>
+</html>
