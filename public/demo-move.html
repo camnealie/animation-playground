@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Loot — Move Money</title>
+  <link rel="stylesheet" type="text/css" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/fill/style.css" />
   <style>
     * {
       margin: 0;
@@ -21,9 +22,9 @@
     }
 
     .phone {
-      --phone-width: 320px;
-      --phone-height: 690px;
-      --bezel: 12px;
+      --phone-height: min(900px, 92vh, calc(90vw * 690 / 320));
+      --phone-width: calc(var(--phone-height) * 320 / 690);
+      --bezel: calc(var(--phone-height) * 12 / 690);
       --screen-width: calc(var(--phone-width) - var(--bezel) * 2);
       --screen-height: calc(var(--phone-height) - var(--bezel) * 2);
       --demo-width: 412px;
@@ -33,7 +34,7 @@
       width: var(--phone-width);
       height: var(--phone-height);
       background: #1a1a1a;
-      border-radius: 48px;
+      border-radius: calc(var(--phone-height) * 48 / 690);
       padding: var(--bezel);
       box-shadow:
         0 0 0 1px rgba(255, 255, 255, 0.1),
@@ -72,7 +73,7 @@
       position: relative;
       width: 100%;
       height: 100%;
-      border-radius: 38px;
+      border-radius: calc(var(--phone-height) * 38 / 690);
       overflow: hidden;
       background: #0f0f1a;
     }
@@ -108,7 +109,7 @@
     .iframe-wrapper {
       width: var(--demo-width);
       height: var(--demo-height);
-      transform: scale(calc(296 / 412));
+      transform: scale(calc(var(--screen-width) / var(--demo-width)));
       transform-origin: top left;
       position: absolute;
       top: 0;
@@ -128,7 +129,7 @@
       left: 0;
       right: 0;
       bottom: 0;
-      border-radius: 38px;
+      border-radius: calc(var(--phone-height) * 38 / 690);
       pointer-events: none;
       z-index: 5;
       background: linear-gradient(
@@ -138,7 +139,46 @@
         transparent 100%
       );
     }
+
+    /* ── Drag hint ── */
+    .tap-hint {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 20;
+      pointer-events: none;
+      transition: opacity 0.35s ease;
+    }
+    .tap-hint.hidden { opacity: 0; }
+    .tap-hint .hint-badge {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      background: #9836fe;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow:
+        0 4px 20px rgba(152, 54, 254, 0.5),
+        0 0 40px rgba(152, 54, 254, 0.25);
+      animation: drag-motion 2.5s ease-in-out infinite;
+    }
+    .tap-hint i {
+      font-size: 36px;
+      color: #fff;
+    }
+    @keyframes drag-motion {
+      0%   { transform: translate(0, 0) scale(1); }
+      15%  { transform: translate(0, 0) scale(0.92); }
+      55%  { transform: translate(30px, 20px) scale(0.92); }
+      70%  { transform: translate(30px, 20px) scale(1); }
+      100% { transform: translate(0, 0) scale(1); }
+    }
   </style>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600&display=swap" rel="stylesheet" />
 </head>
 <body>
   <div class="phone">
@@ -148,10 +188,22 @@
     <div class="screen">
       <div class="dynamic-island"></div>
       <div class="iframe-wrapper">
-        <iframe src="scene-move.html" title="Loot — Move Money" allow="autoplay" scrolling="no"></iframe>
+        <iframe id="demo" src="scene-move.html" title="Loot — Move Money" allow="autoplay" scrolling="no"></iframe>
       </div>
       <div class="screen-glare"></div>
+      <div class="tap-hint" id="tap-hint">
+        <div class="hint-badge">
+          <i class="ph-fill ph-hand-grabbing"></i>
+        </div>
+      </div>
+      <div id="tap-overlay" style="position:absolute;inset:0;z-index:15;cursor:pointer;"></div>
     </div>
   </div>
+  <script>
+    document.getElementById('tap-overlay').addEventListener('click', function () {
+      document.getElementById('tap-hint').classList.add('hidden');
+      this.remove();
+    }, { once: true });
+  </script>
 </body>
 </html>
