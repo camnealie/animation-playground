@@ -17,7 +17,7 @@
     }
 
     html {
-      font-size: 150%;
+      font-size: 125%;
     }
 
     @media (max-width: 600px) {
@@ -58,7 +58,7 @@
       backdrop-filter: blur(24px);
       -webkit-backdrop-filter: blur(24px);
       opacity: 0;
-      transform: translateX(-20px);
+      transform: translateY(40px) scale(0.92);
       position: relative;
       overflow: hidden;
       transition: border-color 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease;
@@ -210,15 +210,42 @@
 <script>
   const cards = document.querySelectorAll('.card');
 
-  const tl = gsap.timeline({ delay: 0.3 });
+  const tl = gsap.timeline({ delay: 0.2 });
+
+  // Cards fly up with scale + fade, staggered
   tl.to(cards, {
     opacity: 1,
-    x: 0,
-    duration: 0.7,
-    stagger: 0.14,
-    ease: 'back.out(1.2)',
+    y: 0,
+    scale: 1,
+    duration: 0.9,
+    stagger: 0.2,
+    ease: 'back.out(1.6)',
   });
 
+  // After each card lands, flash its icon ring
+  tl.to('.card-bank .icon-ring', {
+    boxShadow: '0 0 20px rgba(96, 165, 250, 0.4)',
+    duration: 0.3,
+    yoyo: true,
+    repeat: 1,
+    ease: 'power2.out',
+  }, '-=0.9');
+  tl.to('.card-learn .icon-ring', {
+    boxShadow: '0 0 20px rgba(152, 54, 254, 0.4)',
+    duration: 0.3,
+    yoyo: true,
+    repeat: 1,
+    ease: 'power2.out',
+  }, '-=0.7');
+  tl.to('.card-predict .icon-ring', {
+    boxShadow: '0 0 20px rgba(74, 222, 128, 0.4)',
+    duration: 0.3,
+    yoyo: true,
+    repeat: 1,
+    ease: 'power2.out',
+  }, '-=0.5');
+
+  // Start idle loops
   tl.add(() => startIconAnimations(), '-=0.2');
 
   function startIconAnimations() {
