@@ -209,44 +209,61 @@
 
 <script>
   const cards = document.querySelectorAll('.card');
+  const container = document.querySelector('.container');
+  let hasPlayed = false;
 
-  const tl = gsap.timeline({ delay: 0.2 });
+  // Wait until the iframe scrolls into view before animating
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting && !hasPlayed) {
+        hasPlayed = true;
+        observer.disconnect();
+        playEntrance();
+      }
+    });
+  }, { threshold: 0.15 });
 
-  // Cards fly up with scale + fade, staggered
-  tl.to(cards, {
-    opacity: 1,
-    y: 0,
-    scale: 1,
-    duration: 0.9,
-    stagger: 0.2,
-    ease: 'back.out(1.6)',
-  });
+  observer.observe(container);
 
-  // After each card lands, flash its icon ring
-  tl.to('.card-bank .icon-ring', {
-    boxShadow: '0 0 20px rgba(96, 165, 250, 0.4)',
-    duration: 0.3,
-    yoyo: true,
-    repeat: 1,
-    ease: 'power2.out',
-  }, '-=0.9');
-  tl.to('.card-learn .icon-ring', {
-    boxShadow: '0 0 20px rgba(152, 54, 254, 0.4)',
-    duration: 0.3,
-    yoyo: true,
-    repeat: 1,
-    ease: 'power2.out',
-  }, '-=0.7');
-  tl.to('.card-predict .icon-ring', {
-    boxShadow: '0 0 20px rgba(74, 222, 128, 0.4)',
-    duration: 0.3,
-    yoyo: true,
-    repeat: 1,
-    ease: 'power2.out',
-  }, '-=0.5');
+  function playEntrance() {
+    const tl = gsap.timeline({ delay: 0.1 });
 
-  // Start idle loops
-  tl.add(() => startIconAnimations(), '-=0.2');
+    // Cards fly up with scale + fade, staggered
+    tl.to(cards, {
+      opacity: 1,
+      y: 0,
+      scale: 1,
+      duration: 0.9,
+      stagger: 0.2,
+      ease: 'back.out(1.6)',
+    });
+
+    // Flash each icon ring as it lands
+    tl.to('.card-bank .icon-ring', {
+      boxShadow: '0 0 20px rgba(96, 165, 250, 0.4)',
+      duration: 0.3,
+      yoyo: true,
+      repeat: 1,
+      ease: 'power2.out',
+    }, '-=0.9');
+    tl.to('.card-learn .icon-ring', {
+      boxShadow: '0 0 20px rgba(152, 54, 254, 0.4)',
+      duration: 0.3,
+      yoyo: true,
+      repeat: 1,
+      ease: 'power2.out',
+    }, '-=0.7');
+    tl.to('.card-predict .icon-ring', {
+      boxShadow: '0 0 20px rgba(74, 222, 128, 0.4)',
+      duration: 0.3,
+      yoyo: true,
+      repeat: 1,
+      ease: 'power2.out',
+    }, '-=0.5');
+
+    // Start idle loops
+    tl.add(() => startIconAnimations(), '-=0.2');
+  }
 
   function startIconAnimations() {
     gsap.to('.card-bank .icon-ring', {
