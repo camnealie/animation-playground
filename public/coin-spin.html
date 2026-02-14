@@ -19,24 +19,23 @@
 
     .scene {
       position: relative;
-      width: 160px;
-      height: 180px;
+      width: 200px;
+      height: 220px;
     }
 
     .coin-anchor {
       position: absolute;
-      bottom: 30px;
+      bottom: 40px;
       left: 50%;
       width: 0;
       height: 0;
-      /* This anchor point lets us move y from the bottom */
     }
 
     .coin {
       position: absolute;
       width: 120px;
       height: 120px;
-      left: -60px; /* center on anchor */
+      left: -60px;
       bottom: 0;
       transform-style: preserve-3d;
       perspective: 600px;
@@ -50,16 +49,49 @@
       backface-visibility: hidden;
     }
 
+    /* Shine sweep across coin face */
+    .coin-shine {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      left: 0;
+      top: 0;
+      border-radius: 50%;
+      overflow: hidden;
+      pointer-events: none;
+      opacity: 0;
+    }
+    .coin-shine::after {
+      content: '';
+      position: absolute;
+      top: -20%;
+      left: -60%;
+      width: 40%;
+      height: 140%;
+      background: linear-gradient(
+        105deg,
+        transparent 0%,
+        rgba(255, 255, 255, 0.0) 35%,
+        rgba(255, 255, 255, 0.35) 45%,
+        rgba(255, 255, 255, 0.5) 50%,
+        rgba(255, 255, 255, 0.35) 55%,
+        rgba(255, 255, 255, 0.0) 65%,
+        transparent 100%
+      );
+      transform: skewX(-15deg);
+      animation: none;
+    }
+
     /* Golden glow behind the coin */
     .coin-glow {
       position: absolute;
-      width: 120px;
-      height: 120px;
-      left: -60px;
-      bottom: 0;
+      width: 140px;
+      height: 140px;
+      left: -70px;
+      bottom: -10px;
       border-radius: 50%;
-      background: radial-gradient(circle, rgba(255, 215, 0, 0.25) 0%, rgba(255, 180, 0, 0.08) 50%, transparent 70%);
-      filter: blur(8px);
+      background: radial-gradient(circle, rgba(255, 215, 0, 0.3) 0%, rgba(255, 180, 0, 0.1) 40%, transparent 70%);
+      filter: blur(10px);
       opacity: 0;
       pointer-events: none;
     }
@@ -67,42 +99,90 @@
     /* Shadow on the ground */
     .shadow {
       position: absolute;
-      bottom: 6px;
+      bottom: 10px;
       left: 50%;
       transform: translateX(-50%);
       width: 90px;
       height: 18px;
       border-radius: 50%;
-      background: radial-gradient(ellipse, rgba(0,0,0,0.35) 0%, transparent 70%);
+      background: radial-gradient(ellipse, rgba(0,0,0,0.38) 0%, rgba(0,0,0,0.12) 50%, transparent 72%);
       filter: blur(2px);
     }
 
-    /* Sparkle particles */
-    .sparkle {
+    /* Impact ring that expands on landing */
+    .impact-ring {
       position: absolute;
+      bottom: 12px;
+      left: 50%;
+      transform: translateX(-50%) scaleY(0.35);
+      width: 30px;
+      height: 30px;
       border-radius: 50%;
+      border: 2px solid rgba(255, 215, 0, 0.5);
       opacity: 0;
       pointer-events: none;
     }
 
-    .sparkle-gold {
-      background: radial-gradient(circle, #ffe066, #ffd700);
-      box-shadow: 0 0 4px rgba(255, 215, 0, 0.6);
+    /* Star-shaped sparkle: two rotated squares */
+    .sparkle {
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
+    }
+    .sparkle-inner {
+      position: relative;
+      width: 100%;
+      height: 100%;
+    }
+    .sparkle-inner::before,
+    .sparkle-inner::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      border-radius: 2px;
+    }
+    .sparkle-inner::before {
+      transform: rotate(0deg);
+    }
+    .sparkle-inner::after {
+      transform: rotate(45deg);
     }
 
-    .sparkle-white {
+    .sparkle-gold .sparkle-inner::before,
+    .sparkle-gold .sparkle-inner::after {
+      background: radial-gradient(circle, #ffe066, #ffd700);
+      box-shadow: 0 0 6px rgba(255, 215, 0, 0.7);
+    }
+
+    .sparkle-white .sparkle-inner::before,
+    .sparkle-white .sparkle-inner::after {
       background: radial-gradient(circle, #fff, #ffeebb);
-      box-shadow: 0 0 3px rgba(255, 255, 255, 0.5);
+      box-shadow: 0 0 5px rgba(255, 255, 255, 0.6);
+    }
+
+    /* Ambient floating particles */
+    .ambient-particle {
+      position: absolute;
+      border-radius: 50%;
+      pointer-events: none;
+      opacity: 0;
+      background: radial-gradient(circle, rgba(255, 215, 0, 0.9), rgba(255, 200, 50, 0.3));
+      box-shadow: 0 0 3px rgba(255, 215, 0, 0.4);
     }
   </style>
 </head>
 <body>
   <div class="scene" id="scene">
     <div class="shadow" id="shadow"></div>
+    <div class="impact-ring" id="impactRing"></div>
     <div class="coin-anchor" id="coinAnchor">
       <div class="coin-glow" id="glow"></div>
       <div class="coin" id="coin">
         <img class="coin-face" src="coin.png" alt="Loot coin" />
+        <div class="coin-shine" id="shine"></div>
       </div>
     </div>
   </div>
@@ -113,16 +193,34 @@
     const coin = document.getElementById('coin');
     const glow = document.getElementById('glow');
     const shadow = document.getElementById('shadow');
+    const shine = document.getElementById('shine');
+    const impactRing = document.getElementById('impactRing');
     let hasPlayed = false;
 
-    // Create sparkle elements
-    const sparkleCount = 10;
+    // ── Star sparkle elements ──
+    const sparkleCount = 14;
     const sparkles = [];
     for (let i = 0; i < sparkleCount; i++) {
       const sp = document.createElement('div');
       sp.className = 'sparkle ' + (i % 3 === 0 ? 'sparkle-white' : 'sparkle-gold');
+      const inner = document.createElement('div');
+      inner.className = 'sparkle-inner';
+      sp.appendChild(inner);
       scene.appendChild(sp);
       sparkles.push(sp);
+    }
+
+    // ── Ambient floating particles ──
+    const ambientCount = 6;
+    const ambients = [];
+    for (let i = 0; i < ambientCount; i++) {
+      const ap = document.createElement('div');
+      ap.className = 'ambient-particle';
+      const size = 2 + Math.random() * 2.5;
+      ap.style.width = size + 'px';
+      ap.style.height = size + 'px';
+      scene.appendChild(ap);
+      ambients.push(ap);
     }
 
     const observer = new IntersectionObserver((entries) => {
@@ -137,6 +235,159 @@
 
     observer.observe(scene);
 
+    // ── Impact ring ripple ──
+    function fireImpactRing(intensity) {
+      const startSize = 30;
+      const endSize = 60 + intensity * 50;
+      gsap.set(impactRing, {
+        width: startSize,
+        height: startSize,
+        opacity: 0.5 * intensity,
+        borderColor: `rgba(255, 215, 0, ${0.5 * intensity})`,
+        borderWidth: 2,
+      });
+      gsap.to(impactRing, {
+        width: endSize,
+        height: endSize,
+        opacity: 0,
+        borderWidth: 0.5,
+        duration: 0.5,
+        ease: 'power2.out',
+      });
+    }
+
+    // ── Shine sweep across coin ──
+    function sweepShine() {
+      const shineEl = shine.querySelector('::after') || shine;
+      // Animate the pseudo-element by moving the whole container
+      gsap.set(shine, { opacity: 1 });
+      // We animate a CSS custom property to move the highlight
+      const tl = gsap.timeline();
+      tl.fromTo(shine, {
+        clipPath: 'inset(0 100% 0 0)',
+      }, {
+        clipPath: 'inset(0 0% 0 0%)',
+        duration: 0.3,
+        ease: 'power1.in',
+      });
+      tl.to(shine, {
+        clipPath: 'inset(0 0% 0 100%)',
+        duration: 0.3,
+        ease: 'power1.out',
+      });
+      tl.set(shine, { opacity: 0, clipPath: 'inset(0 100% 0 0)' });
+    }
+
+    // ── Ambient particle orbiting ──
+    function startAmbientParticles() {
+      const cx = 100; // scene center x
+      const cy = 110; // roughly coin center y in scene
+      ambients.forEach((ap, i) => {
+        const angle = (i / ambientCount) * Math.PI * 2;
+        const radiusX = 55 + Math.random() * 20;
+        const radiusY = 45 + Math.random() * 15;
+        const speed = 4 + Math.random() * 3; // seconds per orbit
+        const startAngle = angle;
+        const drift = -15 - Math.random() * 20; // slow upward drift
+
+        // Fade in
+        gsap.to(ap, {
+          opacity: 0.4 + Math.random() * 0.3,
+          duration: 1 + Math.random(),
+          delay: Math.random() * 2,
+        });
+
+        // Orbit using a custom tween
+        gsap.to({ t: 0 }, {
+          t: Math.PI * 2,
+          duration: speed,
+          repeat: -1,
+          ease: 'none',
+          onUpdate: function () {
+            const t = this.targets()[0].t + startAngle;
+            const x = cx + Math.cos(t) * radiusX;
+            const y = cy + Math.sin(t) * radiusY * 0.4 + Math.sin(t * 0.7) * 5;
+            gsap.set(ap, { left: x, top: y });
+          },
+        });
+
+        // Twinkle: pulse opacity
+        gsap.to(ap, {
+          opacity: 0.15,
+          duration: 0.8 + Math.random() * 1.2,
+          ease: 'sine.inOut',
+          yoyo: true,
+          repeat: -1,
+          delay: Math.random() * 2,
+        });
+      });
+    }
+
+    // ── Star sparkle burst ──
+    function burstSparkles(intensity) {
+      const count = Math.floor(sparkleCount * intensity);
+      const centerX = 100;
+      const centerY = 130;
+      sparkles.forEach((sp, i) => {
+        if (i >= count) return;
+        const angle = (i / count) * Math.PI * 2 + (Math.random() - 0.5) * 0.6;
+        const dist = 30 + Math.random() * 45;
+        const size = 4 + Math.random() * 6;
+        const isEmber = Math.random() < 0.3; // some drift upward like embers
+
+        gsap.set(sp, {
+          left: centerX,
+          top: centerY - 50,
+          width: size,
+          height: size,
+          opacity: 0.9 + Math.random() * 0.1,
+          scale: 0.8 + Math.random() * 0.4,
+          rotation: Math.random() * 90,
+        });
+
+        if (isEmber) {
+          // Ember: drifts up slowly, fading
+          gsap.to(sp, {
+            left: centerX + (Math.random() - 0.5) * 40,
+            top: centerY - 50 - 40 - Math.random() * 40,
+            opacity: 0,
+            scale: 0.2,
+            rotation: '+=120',
+            duration: 0.8 + Math.random() * 0.6,
+            ease: 'power1.out',
+          });
+        } else {
+          // Normal burst outward with twinkle
+          const tl = gsap.timeline();
+          tl.to(sp, {
+            left: centerX + Math.cos(angle) * dist,
+            top: centerY - 50 + Math.sin(angle) * dist - 15,
+            scale: 0.5 + Math.random() * 0.5,
+            rotation: '+=180',
+            duration: 0.35 + Math.random() * 0.3,
+            ease: 'power2.out',
+          });
+          // Flash/twinkle at peak
+          tl.to(sp, {
+            opacity: 0.3,
+            duration: 0.05,
+            ease: 'steps(1)',
+          }, '-=0.15');
+          tl.to(sp, {
+            opacity: 0.9,
+            duration: 0.05,
+            ease: 'steps(1)',
+          });
+          tl.to(sp, {
+            opacity: 0,
+            scale: 0,
+            duration: 0.2,
+            ease: 'power2.in',
+          });
+        }
+      });
+    }
+
     function playEntrance() {
       const tl = gsap.timeline({ delay: 0.15 });
 
@@ -145,6 +396,7 @@
       gsap.set(shadow, { opacity: 0, scaleX: 0.4, scaleY: 0.4 });
       gsap.set(glow, { opacity: 0 });
       gsap.set(coin, { rotateY: 0, rotateZ: -8 });
+      gsap.set(shine, { opacity: 0 });
 
       // ── Drop with slight rotation ──
       tl.to(coinAnchor, {
@@ -154,7 +406,6 @@
         ease: 'power3.in',
       });
 
-      // Spin a bit while falling
       tl.to(coin, {
         rotateZ: 0,
         duration: 0.45,
@@ -169,24 +420,27 @@
         ease: 'power2.out',
       });
 
-      // Shadow slams in
+      // Shadow slams in, slightly wider on impact
       tl.to(shadow, {
         opacity: 1,
-        scaleX: 1.1,
-        scaleY: 1,
+        scaleX: 1.2,
+        scaleY: 1.1,
         duration: 0.06,
         ease: 'power2.out',
       }, '<');
 
       // Glow flash on impact
       tl.to(glow, {
-        opacity: 0.8,
+        opacity: 0.9,
         duration: 0.08,
         ease: 'power2.out',
       }, '<');
 
+      // Impact ring
+      tl.add(() => fireImpactRing(1.0));
+
       // Sparkle burst
-      tl.add(() => burstSparkles(0.7));
+      tl.add(() => burstSparkles(0.8));
 
       // ── Bounce 1: Stretch up ──
       tl.to(coin, {
@@ -201,9 +455,9 @@
         ease: 'power2.out',
       });
       tl.to(shadow, {
-        scaleX: 0.6,
-        scaleY: 0.6,
-        opacity: 0.4,
+        scaleX: 0.55,
+        scaleY: 0.55,
+        opacity: 0.35,
         duration: 0.28,
         ease: 'power2.out',
       }, '<');
@@ -246,6 +500,9 @@
         opacity: 0.5,
         duration: 0.05,
       }, '<');
+
+      // Smaller impact ring
+      tl.add(() => fireImpactRing(0.5));
 
       // ── Bounce 2: Tiny ──
       tl.to(coin, {
@@ -293,45 +550,18 @@
         ease: 'power2.out',
       });
 
-      // Small sparkle on final settle
+      // Small sparkle + shine on final settle
       tl.add(() => burstSparkles(0.4), '-=0.1');
+      tl.add(() => sweepShine(), '-=0.2');
 
       // Start idle after a pause
       tl.add(() => startIdle(), '+=0.8');
     }
 
-    function burstSparkles(intensity) {
-      const count = Math.floor(sparkleCount * intensity);
-      const centerX = 80; // center of scene
-      const centerY = 120; // near coin bottom
-      sparkles.forEach((sp, i) => {
-        if (i >= count) return;
-        const angle = (i / count) * Math.PI * 2 + (Math.random() - 0.5) * 0.5;
-        const dist = 25 + Math.random() * 35;
-        const size = 3 + Math.random() * 5;
-        gsap.set(sp, {
-          x: centerX,
-          y: centerY - 50,
-          width: size,
-          height: size,
-          opacity: 0.8 + Math.random() * 0.2,
-          scale: 1,
-        });
-        gsap.to(sp, {
-          x: centerX + Math.cos(angle) * dist,
-          y: centerY - 50 + Math.sin(angle) * dist - 10,
-          opacity: 0,
-          scale: 0,
-          duration: 0.4 + Math.random() * 0.4,
-          ease: 'power2.out',
-        });
-      });
-    }
-
     function startIdle() {
       // Breathing glow
       gsap.to(glow, {
-        opacity: 0.25,
+        opacity: 0.28,
         duration: 2,
         ease: 'sine.inOut',
         yoyo: true,
@@ -355,17 +585,33 @@
         repeat: -1,
       });
 
+      // Start ambient floating particles
+      startAmbientParticles();
+
+      // Periodic shine sweep
+      startPeriodicShine();
+
       // Periodic arcade spin
       doArcadeSpin();
     }
 
+    function startPeriodicShine() {
+      const doSweep = () => {
+        const delay = 4 + Math.random() * 4;
+        gsap.delayedCall(delay, () => {
+          sweepShine();
+          doSweep();
+        });
+      };
+      doSweep();
+    }
+
     function doArcadeSpin() {
-      // Random delay between spins: 3–5s
       const delay = 3 + Math.random() * 2;
 
       gsap.delayedCall(delay, () => {
         const spinTl = gsap.timeline({
-          onComplete: doArcadeSpin, // loop
+          onComplete: doArcadeSpin,
         });
 
         // Rise up
@@ -375,14 +621,14 @@
           ease: 'power2.out',
         });
         spinTl.to(shadow, {
-          scaleX: 0.5,
-          scaleY: 0.5,
-          opacity: 0.3,
+          scaleX: 0.45,
+          scaleY: 0.45,
+          opacity: 0.25,
           duration: 0.35,
           ease: 'power2.out',
         }, '<');
         spinTl.to(glow, {
-          opacity: 0.5,
+          opacity: 0.55,
           duration: 0.35,
           ease: 'power2.out',
         }, '<');
@@ -395,7 +641,7 @@
           ease: 'power2.out',
         }, '<');
 
-        // 3D spin using rotateY — 2 full rotations
+        // 3D spin using rotateY -- 2 full rotations
         spinTl.to(coin, {
           rotateY: 720,
           duration: 0.7,
@@ -413,11 +659,21 @@
 
         // Glow pulses during spin
         spinTl.to(glow, {
-          opacity: 0.7,
+          opacity: 0.75,
           duration: 0.35,
           ease: 'sine.inOut',
           yoyo: true,
           repeat: 1,
+        }, '<');
+
+        // Shadow elongates/skews during spin to match rotation
+        spinTl.to(shadow, {
+          scaleX: 0.3,
+          skewX: 8,
+          duration: 0.175,
+          ease: 'sine.inOut',
+          yoyo: true,
+          repeat: 3,
         }, '<');
 
         // Fall back, normalize
@@ -436,6 +692,7 @@
         spinTl.to(shadow, {
           scaleX: 1,
           scaleY: 1,
+          skewX: 0,
           opacity: 1,
           duration: 0.3,
           ease: 'power3.in',
@@ -453,14 +710,20 @@
           duration: 0.05,
         }, '<');
 
+        // Impact ring on spin landing
+        spinTl.add(() => fireImpactRing(0.6));
+
         // Sparkle on land
         spinTl.add(() => burstSparkles(0.5));
+
+        // Shine sweep on landing
+        spinTl.add(() => sweepShine(), '-=0.2');
 
         // Recover
         spinTl.to(coin, {
           scaleX: 1,
           scaleY: 1,
-          rotateY: 0, // reset for next spin
+          rotateY: 0,
           duration: 0.2,
           ease: 'elastic.out(1, 0.5)',
         });
