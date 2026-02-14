@@ -191,19 +191,7 @@
         <iframe id="demo" src="scene-move.html" title="Loot — Move Money" allow="autoplay" scrolling="no"></iframe>
       </div>
       <div class="screen-glare"></div>
-      <div class="tap-hint" id="tap-hint">
-        <div class="hint-badge">
-          <i class="ph-fill ph-hand-grabbing"></i>
-        </div>
-      </div>
-      <div id="tap-overlay" style="position:absolute;inset:0;z-index:15;cursor:pointer;"></div>
     </div>
   </div>
-  <script>
-    document.getElementById('tap-overlay').addEventListener('click', function () {
-      document.getElementById('tap-hint').classList.add('hidden');
-      this.remove();
-    }, { once: true });
-  </script>
 </body>
 </html>

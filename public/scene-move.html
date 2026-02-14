@@ -29,7 +29,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 12px 16px;
+    padding: 12px 24px;
     background: #242438;
     border-bottom: 1px solid #32324d;
     min-height: 44px;
@@ -78,7 +78,7 @@
     width: 100%;
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 14px;
     color: #6b7280;
     font-size: 13px;
     font-weight: 500;
@@ -92,6 +92,7 @@
     align-items: center;
     touch-action: none;
     cursor: pointer;
+    max-width: calc(100% - 120px);
   }
 
   .scrub-track {
@@ -278,12 +279,15 @@
     right: 0;
     height: 64px;
     background: #1a1a2e;
-    border-top: 1px solid rgba(255,255,255,0.1);
+    border-top: 1px solid rgba(255,255,255,0.06);
     display: flex;
     align-items: center;
     justify-content: space-around;
     z-index: 50;
     flex-shrink: 0;
+    /* Extend background below to prevent dark line at screen bottom */
+    padding-bottom: env(safe-area-inset-bottom, 0);
+    box-shadow: 0 20px 0 #1a1a2e;
   }
 
   .nav-item {
