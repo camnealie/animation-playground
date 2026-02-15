@@ -325,17 +325,17 @@
         // Shadow skews during spin
         tl.to(shadow, { scaleX: 0.3, skewX: 8, duration: 0.175, ease: 'sine.inOut', yoyo: true, repeat: 3 }, '<');
 
+        // Reset rotation before falling (720 = 0 visually, but reset avoids 3D edge glitch)
+        tl.set(coin, { rotateY: 0 });
+
         // Fall back down
         tl.to(coin, { scaleX: 1, scaleY: 1, rotateZ: 0, duration: 0.15, ease: 'power2.out' });
         tl.to(coinAnchor, { y: 0, duration: 0.3, ease: 'power3.in' });
         tl.to(shadow, { scaleX: 1, scaleY: 1, skewX: 0, opacity: 1, duration: 0.3, ease: 'power3.in' }, '<');
 
-        // Landing squash
-        tl.to(coin, { scaleX: 1.1, scaleY: 0.9, duration: 0.05, ease: 'power2.out' });
-
-        // Recover shape, then silently reset rotation for next spin
-        tl.to(coin, { scaleX: 1, scaleY: 1, duration: 0.2, ease: 'elastic.out(1, 0.5)' });
-        tl.set(coin, { rotateY: 0 });
+        // Landing squash + recover
+        tl.to(coin, { scaleX: 1.08, scaleY: 0.93, duration: 0.05, ease: 'power2.out' });
+        tl.to(coin, { scaleX: 1, scaleY: 1, duration: 0.15, ease: 'power2.out' });
       });
     }
 
