@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Why Envelopes?</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body {
+      width: 100%; min-height: 100%;
+      background: transparent;
+      font-family: 'Nunito', system-ui, -apple-system, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      color: #f0f0f5;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 60px 32px;
+    }
+
+    .section-heading {
+      text-align: center;
+      margin-bottom: 72px;
+      opacity: 0;
+    }
+    .section-heading h2 {
+      font-size: 44px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      color: #f0f0f5;
+    }
+    .section-heading h2 span {
+      color: #9836fe;
+    }
+
+    /* ── Cards ── */
+    .card {
+      padding: 36px 0;
+      opacity: 0;
+    }
+    .card + .card {
+      margin-top: 48px;
+    }
+
+    .card { text-align: center; }
+
+    .card h3 {
+      font-size: 28px;
+      font-weight: 800;
+      color: #f0f0f5;
+      line-height: 1.3;
+      margin-bottom: 10px;
+    }
+    .card h3 em {
+      font-style: normal;
+      color: #9836fe;
+    }
+    .card p {
+      font-size: 18px;
+      font-weight: 500;
+      color: rgba(255, 255, 255, 0.65);
+      line-height: 1.6;
+    }
+
+    /* ── Responsive ── */
+    @media (max-width: 480px) {
+      .container { padding: 40px 20px; }
+      .section-heading { margin-bottom: 48px; }
+      .section-heading h2 { font-size: 32px; }
+      .card { padding: 28px 0; }
+      .card + .card { margin-top: 32px; }
+      .card h3 { font-size: 22px; }
+      .card p { font-size: 16px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="section-heading" id="heading">
+      <h2>Why <span>Loot</span>?</h2>
+    </div>
+
+    <div class="card" id="card-1">
+      <h3>Your bank balance <em>lies</em> to you.</h3>
+      <p>It shows one number — but rent's due Friday, groceries are tomorrow, and you're saving for a trip.</p>
+    </div>
+
+    <div class="card" id="card-2">
+      <h3>Envelopes show what's <em>actually</em> yours to spend.</h3>
+      <p>Every dollar has a job before you touch it.</p>
+    </div>
+
+    <div class="card" id="card-3">
+      <h3>No more <em>mental math</em>.</h3>
+      <p>Loot tracks bills, savings, and spending categories — so you don't have to remember.</p>
+    </div>
+
+    <div class="card" id="card-4">
+      <h3>No backlog. No catch-up. <em>No guilt</em>.</h3>
+      <p>Loot keeps categorising your spending whether you open it or not.</p>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <script>
+    const heading = document.getElementById('heading');
+    const cards = [
+      document.getElementById('card-1'),
+      document.getElementById('card-2'),
+      document.getElementById('card-3'),
+      document.getElementById('card-4'),
+    ];
+
+    const tl = gsap.timeline({ delay: 0.3 });
+
+    tl.fromTo(heading,
+      { opacity: 0, y: 20 },
+      { opacity: 1, y: 0, duration: 0.6, ease: 'power2.out' }
+    );
+
+    cards.forEach((card, i) => {
+      tl.fromTo(card,
+        { opacity: 0, y: 25 },
+        { opacity: 1, y: 0, duration: 0.5, ease: 'power2.out' },
+        `-=0.2`
+      );
+    });
+  </script>
+</body>
+</html>

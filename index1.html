@@ -1,0 +1,1959 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, user-scalable=no">
+<title>Envelope Money Transfer</title>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,1,0" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #1a1a2e;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    overflow: hidden;
+    -webkit-user-select: none;
+    user-select: none;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  }
+
+  .slider-bar {
+    width: 100%;
+    max-width: 480px;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: rgba(255,255,255,0.7);
+    font-size: 13px;
+    font-weight: 500;
+  }
+
+  .scrub-slider {
+    flex: 1;
+    position: relative;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    touch-action: none;
+    cursor: pointer;
+  }
+
+  .scrub-track {
+    width: 100%;
+    height: 4px;
+    background: rgba(255,255,255,0.15);
+    border-radius: 2px;
+    position: relative;
+  }
+
+  .scrub-fill {
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 100%;
+    background: rgba(255,255,255,0.4);
+    border-radius: 2px;
+    pointer-events: none;
+  }
+
+  .scrub-thumb {
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+    transform: translate(-50%, -50%);
+    top: 50%;
+    pointer-events: none;
+    transition: transform 0.1s ease;
+  }
+
+  .scrub-slider.dragging .scrub-thumb {
+    transform: translate(-50%, -50%) scale(1.2);
+  }
+
+  .scrub-speed {
+    position: fixed;
+    background: rgba(0,0,0,0.85);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 6px 10px;
+    border-radius: 6px;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.15s ease;
+    z-index: 200;
+  }
+
+  .scrub-slider.dragging .scrub-speed {
+    opacity: 1;
+  }
+
+  /* Scrub hint - appears on first interaction */
+  .scrub-hint {
+    position: fixed;
+    background: rgba(0,0,0,0.9);
+    color: #fff;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 10px 14px;
+    border-radius: 10px;
+    white-space: nowrap;
+    pointer-events: none;
+    z-index: 201;
+    opacity: 0;
+    transform: translateX(-50%) translateY(8px);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .scrub-hint.visible {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+
+  .scrub-hint-arrow {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    font-size: 16px;
+    animation: bounceDown 1s ease-in-out infinite;
+  }
+
+  @keyframes bounceDown {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(4px); }
+  }
+
+  /* Speed zone indicator - shows current precision level */
+  .scrub-zones {
+    position: fixed;
+    right: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    pointer-events: none;
+    z-index: 198;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+  }
+
+  .scrub-slider.dragging ~ .scrub-zones {
+    opacity: 1;
+  }
+
+  .scrub-zone {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 10px;
+    font-weight: 600;
+    color: rgba(255,255,255,0.4);
+    transition: all 0.15s ease;
+    padding: 4px 8px;
+    border-radius: 4px;
+  }
+
+  .scrub-zone.active {
+    color: #fff;
+    background: rgba(255,255,255,0.1);
+  }
+
+  .scrub-zone-bar {
+    width: 24px;
+    height: 3px;
+    border-radius: 2px;
+    background: rgba(255,255,255,0.2);
+    transition: background 0.15s ease;
+  }
+
+  .scrub-zone.active .scrub-zone-bar {
+    background: #48bb78;
+  }
+
+  .scrub-zone:nth-child(1).active .scrub-zone-bar { background: #f6ad55; }
+  .scrub-zone:nth-child(2).active .scrub-zone-bar { background: #4fd1c5; }
+  .scrub-zone:nth-child(3).active .scrub-zone-bar { background: #63b3ed; }
+  .scrub-zone:nth-child(4).active .scrub-zone-bar { background: #b794f4; }
+
+  .scrub-tether {
+    position: fixed;
+    pointer-events: none;
+    z-index: 199;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+  }
+
+  .scrub-slider.dragging .scrub-tether {
+    opacity: 1;
+  }
+
+  .slider-amount {
+    min-width: 54px;
+    text-align: right;
+    font-weight: 700;
+    color: #fff;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .slider-tip {
+    font-size: 11px;
+    color: rgba(255,255,255,0.5);
+    text-align: center;
+    margin-top: -2px;
+    padding-bottom: 6px;
+    transition: opacity 0.3s ease;
+  }
+
+  .slider-tip.hidden {
+    opacity: 0;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    padding: 16px;
+    max-width: 480px;
+    width: 100%;
+  }
+
+  .cell {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .box {
+    width: 100%;
+    background: #fff;
+    border-radius: 14px;
+    cursor: grab;
+    touch-action: none;
+    transition: transform 0.1s ease-out;
+    padding: 16px 8px 14px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  }
+
+  .box.dragging {
+    cursor: grabbing;
+    transition: none;
+  }
+
+  .box-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    position: relative;
+    overflow: hidden;
+    /* Gem-like 3D faceted effect */
+    box-shadow:
+      inset 0 3px 6px rgba(255,255,255,0.5),
+      inset 0 -3px 6px rgba(0,0,0,0.25),
+      inset 3px 0 6px rgba(255,255,255,0.1),
+      inset -3px 0 6px rgba(0,0,0,0.1),
+      0 4px 12px rgba(0,0,0,0.2),
+      0 0 20px rgba(255,255,255,0.05);
+    /* Slight perspective tilt for 3D feel */
+    transform-style: preserve-3d;
+  }
+
+  /* Facet highlight overlay */
+  .box-icon .material-symbols-rounded {
+    position: relative;
+    z-index: 2;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+  }
+
+  /* Gem top-left highlight - subtle shine */
+  .box-icon::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(
+      135deg,
+      rgba(255,255,255,0.2) 0%,
+      transparent 40%
+    );
+    border-radius: 12px;
+    pointer-events: none;
+  }
+
+  /* Animated sparkle highlight - triggered by JS for random timing */
+  .box-icon::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 50%;
+    height: 100%;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(255,255,255,0.5),
+      transparent
+    );
+    transform: skewX(-15deg);
+    pointer-events: none;
+    opacity: 0;
+    transition: none;
+  }
+
+  .box-icon.shining::after {
+    animation: gemShine 0.6s ease-out forwards;
+  }
+
+  @keyframes gemShine {
+    0% { left: -50%; opacity: 0; }
+    20% { opacity: 0.8; }
+    80% { opacity: 0.8; }
+    100% { left: 150%; opacity: 0; }
+  }
+
+  /* Gem idle animation - subtle float and wobble */
+  @keyframes gemFloat {
+    0%, 100% {
+      transform: translateY(0) rotate(0deg) scale(1);
+    }
+    33% {
+      transform: translateY(-2px) rotate(0.8deg) scale(1.015);
+    }
+    66% {
+      transform: translateY(-1px) rotate(-0.5deg) scale(1.01);
+    }
+  }
+
+  /* 3D flip animation - like a game pickup */
+  .box-icon.flipping {
+    animation: gemFlip 0.8s ease-in-out;
+  }
+
+  @keyframes gemFlip {
+    0% { transform: perspective(200px) rotateY(0deg); }
+    50% { transform: perspective(200px) rotateY(180deg) scale(1.1); }
+    100% { transform: perspective(200px) rotateY(360deg); }
+  }
+
+  /* Apply float animation to icons with staggered delays */
+  .cell:nth-child(1) .box-icon { animation: gemFloat 5s ease-in-out infinite; animation-delay: 0s; }
+  .cell:nth-child(2) .box-icon { animation: gemFloat 5.2s ease-in-out infinite; animation-delay: 0.4s; }
+  .cell:nth-child(3) .box-icon { animation: gemFloat 4.8s ease-in-out infinite; animation-delay: 0.8s; }
+  .cell:nth-child(4) .box-icon { animation: gemFloat 5.1s ease-in-out infinite; animation-delay: 1.2s; }
+  .cell:nth-child(5) .box-icon { animation: gemFloat 4.9s ease-in-out infinite; animation-delay: 1.6s; }
+  .cell:nth-child(6) .box-icon { animation: gemFloat 5.3s ease-in-out infinite; animation-delay: 2.0s; }
+  .cell:nth-child(7) .box-icon { animation: gemFloat 5s ease-in-out infinite; animation-delay: 2.4s; }
+  .cell:nth-child(8) .box-icon { animation: gemFloat 4.7s ease-in-out infinite; animation-delay: 2.8s; }
+  .cell:nth-child(9) .box-icon { animation: gemFloat 5.2s ease-in-out infinite; animation-delay: 0.2s; }
+
+  .box-icon .material-symbols-rounded {
+    font-family: 'Material Symbols Rounded';
+    font-size: 26px;
+    font-weight: normal;
+    font-style: normal;
+    line-height: 1;
+    letter-spacing: normal;
+    text-transform: none;
+    white-space: nowrap;
+    word-wrap: normal;
+    direction: ltr;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .box-label {
+    font-size: 11px;
+    font-weight: 500;
+    color: #4a5568;
+    text-align: center;
+    line-height: 1.25;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    max-width: 100%;
+    padding: 0 4px;
+  }
+
+  .box-amount {
+    font-size: 16px;
+    font-weight: 700;
+    color: #1a202c;
+    transition: color 0.3s ease;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .box-amount.negative {
+    color: #e53e3e;
+  }
+
+  .box-amount.flash-down {
+    color: #e53e3e;
+  }
+
+  .box-amount.flash-up {
+    color: #48bb78;
+  }
+
+  .box-bar {
+    width: 60%;
+    height: 3px;
+    background: #e2e8f0;
+    border-radius: 2px;
+    margin-top: 2px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .box-bar-fill {
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 100%;
+    border-radius: 2px;
+    transition: width 0.4s cubic-bezier(0.16, 1, 0.3, 1), background 0.4s ease;
+  }
+
+  /* Coin */
+  .coin {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, #f9e547, #f1c40f 40%, #d4a017 100%);
+    box-shadow:
+      0 2px 8px rgba(0,0,0,0.4),
+      inset 0 -2px 4px rgba(0,0,0,0.2),
+      inset 0 2px 4px rgba(255,255,255,0.3);
+    position: fixed;
+    pointer-events: none;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    font-weight: 900;
+    color: #b8860b;
+    text-shadow: 0 1px 1px rgba(255,255,255,0.3);
+    font-family: -apple-system, sans-serif;
+    opacity: 0;
+    transform: scale(0);
+  }
+
+  /* Coin animation handled via JS */
+
+  /* Burst ring from coin */
+  .coin-burst {
+    position: fixed;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 99;
+    opacity: 0;
+  }
+
+  .coin-burst.go {
+    animation: burstRing 0.5s ease-out forwards;
+  }
+
+  @keyframes burstRing {
+    0% { opacity: 0.7; transform: scale(1); box-shadow: 0 0 0 3px rgba(241, 196, 15, 0.8), 0 0 20px rgba(241, 196, 15, 0.4); }
+    100% { opacity: 0; transform: scale(2.5); box-shadow: 0 0 0 1px rgba(241, 196, 15, 0), 0 0 40px rgba(241, 196, 15, 0); }
+  }
+
+  /* Spark particles */
+  .spark {
+    position: fixed;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: #f1c40f;
+    pointer-events: none;
+    z-index: 99;
+    opacity: 0;
+  }
+
+  .spark.go {
+    animation: sparkFly 0.45s ease-out forwards;
+  }
+
+  @keyframes sparkFly {
+    0% { opacity: 1; transform: translate(0, 0) scale(1); }
+    100% { opacity: 0; transform: translate(var(--sx), var(--sy)) scale(0); }
+  }
+
+  /* Target box — ready to receive */
+  .box.drop-target {
+    transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275),
+                box-shadow 0.2s ease;
+    transform: scale(1.08);
+    box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.5), 0 4px 12px rgba(0,0,0,0.1);
+  }
+
+  /* Floating +/- amount badges */
+  .amount-badge {
+    position: absolute;
+    pointer-events: none;
+    z-index: 150;
+    font-size: 11px;
+    font-weight: 700;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    opacity: 0;
+    padding: 2px 8px;
+    border-radius: 8px;
+  }
+
+  .amount-badge.minus {
+    color: #e53e3e;
+    background: rgba(229, 62, 62, 0.1);
+    animation: floatAway 1.2s ease-out forwards;
+  }
+
+  .amount-badge.plus {
+    color: #48bb78;
+    background: rgba(72, 187, 120, 0.1);
+    animation: floatAway 1.2s ease-out forwards;
+  }
+
+  @keyframes floatAway {
+    0% { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
+    70% { opacity: 0.7; transform: translateX(-50%) translateY(-30px) scale(1); }
+    100% { opacity: 0; transform: translateX(-50%) translateY(-45px) scale(0.95); }
+  }
+
+  /* Inline delta badge shown during preview */
+  .delta-badge {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 1px 5px;
+    border-radius: 6px;
+    margin-left: 3px;
+    font-variant-numeric: tabular-nums;
+    vertical-align: middle;
+  }
+
+  .delta-badge.minus {
+    color: #e53e3e;
+    background: rgba(229, 62, 62, 0.1);
+  }
+
+  .delta-badge.plus {
+    color: #48bb78;
+    background: rgba(72, 187, 120, 0.1);
+  }
+
+  /* Sparkle trail behind dragged coin - pixelated style */
+  .trail-spark {
+    position: fixed;
+    pointer-events: none;
+    z-index: 99;
+    border-radius: 0;
+    background: #f9e547;
+    image-rendering: pixelated;
+    box-shadow:
+      0 0 0 1px rgba(241, 196, 15, 0.6),
+      2px 2px 0 rgba(0, 0, 0, 0.15);
+  }
+
+  /* Ambient background particles */
+  .ambient-particle {
+    position: fixed;
+    pointer-events: none;
+    z-index: 0;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.06);
+  }
+
+  /* Amount edit modal */
+  .amount-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    z-index: 300;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+  }
+
+  .amount-modal-overlay.visible {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .amount-modal {
+    background: #fff;
+    border-radius: 20px;
+    padding: 24px;
+    min-width: 280px;
+    transform: scale(0.9) translateY(20px);
+    transition: transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+  }
+
+  .amount-modal-overlay.visible .amount-modal {
+    transform: scale(1) translateY(0);
+  }
+
+  .amount-modal-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #718096;
+    text-align: center;
+    margin-bottom: 16px;
+  }
+
+  .amount-modal-input-wrap {
+    position: relative;
+    margin-bottom: 20px;
+  }
+
+  .amount-modal-input {
+    width: 100%;
+    font-size: 36px;
+    font-weight: 700;
+    text-align: center;
+    border: none;
+    background: #f7fafc;
+    border-radius: 12px;
+    padding: 16px;
+    color: #1a202c;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-variant-numeric: tabular-nums;
+    outline: none;
+    transition: box-shadow 0.2s ease;
+  }
+
+  .amount-modal-input:focus {
+    box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.4);
+  }
+
+  .amount-modal-presets {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .amount-preset {
+    padding: 8px 16px;
+    border-radius: 20px;
+    background: #edf2f7;
+    border: none;
+    font-size: 14px;
+    font-weight: 600;
+    color: #4a5568;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .amount-preset:hover {
+    background: #e2e8f0;
+  }
+
+  .amount-preset:active {
+    transform: scale(0.95);
+  }
+
+  .amount-modal-actions {
+    display: flex;
+    gap: 12px;
+  }
+
+  .amount-modal-btn {
+    flex: 1;
+    padding: 14px;
+    border-radius: 12px;
+    border: none;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .amount-modal-btn.cancel {
+    background: #edf2f7;
+    color: #4a5568;
+  }
+
+  .amount-modal-btn.confirm {
+    background: #4299e1;
+    color: #fff;
+  }
+
+  .amount-modal-btn:hover {
+    filter: brightness(0.95);
+  }
+
+  .amount-modal-btn:active {
+    transform: scale(0.97);
+  }
+
+  /* Make slider amount clickable */
+  .slider-amount {
+    cursor: pointer;
+    padding: 4px 8px;
+    margin: -4px -8px;
+    border-radius: 6px;
+    transition: background 0.15s ease;
+  }
+
+  .slider-amount:hover {
+    background: rgba(255,255,255,0.1);
+  }
+
+  .slider-amount:active {
+    background: rgba(255,255,255,0.15);
+  }
+
+  /* Transfer coins - matches drag coin size */
+  .transfer-coin {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, #f9e547, #f1c40f 40%, #d4a017 100%);
+    box-shadow:
+      0 2px 6px rgba(0,0,0,0.4),
+      inset 0 -2px 3px rgba(0,0,0,0.2),
+      inset 0 2px 3px rgba(255,255,255,0.3);
+    position: fixed;
+    pointer-events: none;
+    z-index: 101;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 900;
+    color: #b8860b;
+    font-family: -apple-system, sans-serif;
+  }
+</style>
+</head>
+<body>
+
+<div class="slider-bar">
+  <span>Transfer</span>
+  <div class="scrub-slider" id="scrubSlider">
+    <div class="scrub-track">
+      <div class="scrub-fill" id="scrubFill"></div>
+      <div class="scrub-thumb" id="scrubThumb"></div>
+    </div>
+  </div>
+  <span class="slider-amount" id="sliderLabel">$5</span>
+</div>
+<div class="slider-tip" id="sliderTip">Drag down for precision</div>
+<svg class="scrub-tether" id="scrubTether" style="position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;">
+  <line id="scrubLine" stroke="rgba(255,255,255,0.3)" stroke-width="2" stroke-dasharray="4,4"/>
+</svg>
+<div class="scrub-speed" id="scrubSpeed">Full Speed</div>
+<div class="scrub-hint" id="scrubHint">
+  <span class="scrub-hint-arrow">&#8595;</span>
+  <span>Drag down for precision</span>
+</div>
+<div class="scrub-zones" id="scrubZones">
+  <div class="scrub-zone" data-zone="0"><span class="scrub-zone-bar"></span>Full</div>
+  <div class="scrub-zone" data-zone="1"><span class="scrub-zone-bar"></span>1/2</div>
+  <div class="scrub-zone" data-zone="2"><span class="scrub-zone-bar"></span>1/4</div>
+  <div class="scrub-zone" data-zone="3"><span class="scrub-zone-bar"></span>Fine</div>
+</div>
+<div class="grid" id="grid"></div>
+<div class="coin" id="coin">$</div>
+<div class="coin-burst" id="burst"></div>
+
+<!-- Amount edit modal -->
+<div class="amount-modal-overlay" id="amountModal">
+  <div class="amount-modal">
+    <div class="amount-modal-title">Transfer Amount</div>
+    <div class="amount-modal-input-wrap">
+      <input type="text" class="amount-modal-input" id="amountInput" inputmode="decimal" placeholder="$0">
+    </div>
+    <div class="amount-modal-presets">
+      <button class="amount-preset" data-amount="500">$5</button>
+      <button class="amount-preset" data-amount="1000">$10</button>
+      <button class="amount-preset" data-amount="2500">$25</button>
+      <button class="amount-preset" data-amount="5000">$50</button>
+      <button class="amount-preset" data-amount="10000">$100</button>
+      <button class="amount-preset" data-amount="50000">$500</button>
+    </div>
+    <div class="amount-modal-actions">
+      <button class="amount-modal-btn cancel" id="amountCancel">Cancel</button>
+      <button class="amount-modal-btn confirm" id="amountConfirm">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const GRID_SIZE = 3;
+const DRAG_LIMIT = 20;
+const POP_THRESHOLD = 80;
+let TRANSFER_CENTS = 500; // controlled by slider
+
+// Haptic "creak" — short pulses that get faster as you stretch further
+const CREAK_INTERVAL_MAX = 120; // ms between pulses at start of drag
+const CREAK_INTERVAL_MIN = 25;  // ms between pulses near the pop threshold
+const CREAK_BUZZ_MS = 8;        // each individual buzz duration
+
+const grid = document.getElementById('grid');
+const coinEl = document.getElementById('coin');
+const burstEl = document.getElementById('burst');
+
+let activeBox = null;
+let dragState = null;
+let lastCreakTime = 0;
+let currentDropTarget = null;
+
+// Random int in range (cents)
+function randRange(min, max) {
+  return Math.round((min + Math.random() * (max - min)) / 100) * 100;
+}
+
+// Envelope data — value is cents to avoid floating point
+// budget = the "full" amount for the progress bar
+const envelopesDef = [
+  { icon: 'account_balance', label: 'Income', color: '#7c6fbd', budgetRange: [80000, 200000] },
+  { icon: 'autorenew', label: 'Recurring', color: '#48bb78', budgetRange: [50000, 120000] },
+  { icon: 'directions_car', label: 'Transportation', color: '#f687b3', budgetRange: [20000, 60000] },
+  { icon: 'spa', label: 'Appearance', color: '#68d391', budgetRange: [15000, 40000] },
+  { icon: 'home', label: 'Household', color: '#4299e1', budgetRange: [80000, 200000] },
+  { icon: 'restaurant', label: 'Dining Out', color: '#9f7aea', budgetRange: [20000, 60000] },
+  { icon: 'shopping_cart', label: 'Groceries', color: '#fc8181', budgetRange: [30000, 80000] },
+  { icon: 'flight', label: 'Travel', color: '#38b2ac', budgetRange: [40000, 150000] },
+  { icon: 'card_giftcard', label: 'Gifts', color: '#ed8936', budgetRange: [10000, 50000] },
+];
+
+const envelopes = envelopesDef.map(def => {
+  const budget = randRange(def.budgetRange[0], def.budgetRange[1]);
+  const value = randRange(Math.round(budget * 0.1), Math.round(budget * 0.9));
+  return { ...def, value, budget };
+});
+
+// Format cents to display string
+function formatAmount(cents) {
+  const abs = Math.abs(cents);
+  const sign = cents < 0 ? '-' : '';
+  const dollars = abs / 100;
+  if (dollars >= 1000) {
+    // Show as $Xk
+    const k = dollars / 1000;
+    return `${sign}$${k % 1 === 0 ? k.toFixed(0) : k.toFixed(1)}k`;
+  }
+  if (dollars % 1 === 0) return `${sign}$${dollars.toFixed(0)}`;
+  return `${sign}$${dollars.toFixed(2)}`;
+}
+
+function updateBar(env, currentValue) {
+  if (!env.barFillEl) return;
+  const pct = Math.max(0, Math.min(100, (currentValue / env.budget) * 100));
+  env.barFillEl.style.width = `${pct}%`;
+  // Color shifts toward red when overspent or near empty
+  if (currentValue <= 0) {
+    env.barFillEl.style.background = '#e53e3e';
+  } else if (pct < 20) {
+    env.barFillEl.style.background = '#ed8936';
+  } else {
+    env.barFillEl.style.background = env.color;
+  }
+}
+
+// Build grid
+for (let i = 0; i < GRID_SIZE * GRID_SIZE; i++) {
+  const cell = document.createElement('div');
+  cell.className = 'cell';
+  const env = envelopes[i];
+
+  const box = document.createElement('div');
+  box.className = 'box';
+  box.dataset.index = i;
+
+  const amountStr = formatAmount(env.value);
+  const fillPct = Math.max(0, Math.min(100, (env.value / env.budget) * 100));
+  box.innerHTML = `
+    <div class="box-icon" style="background: ${env.color}"><span class="material-symbols-rounded">${env.icon}</span></div>
+    <div class="box-label">${env.label}</div>
+    <div class="box-amount ${env.value < 0 ? 'negative' : ''}">${amountStr}</div>
+    <div class="box-bar"><div class="box-bar-fill" style="width: ${fillPct}%; background: ${env.color}"></div></div>
+  `;
+
+  // Store references
+  env.amountEl = box.querySelector('.box-amount');
+  env.barFillEl = box.querySelector('.box-bar-fill');
+
+  cell.appendChild(box);
+  grid.appendChild(cell);
+}
+
+// Scrubbing Slider
+const scrubSlider = document.getElementById('scrubSlider');
+const scrubFill = document.getElementById('scrubFill');
+const scrubThumb = document.getElementById('scrubThumb');
+const scrubSpeedEl = document.getElementById('scrubSpeed');
+const scrubTether = document.getElementById('scrubTether');
+const scrubLine = document.getElementById('scrubLine');
+const sliderLabel = document.getElementById('sliderLabel');
+const scrubHint = document.getElementById('scrubHint');
+const scrubZones = document.getElementById('scrubZones');
+const zoneEls = scrubZones.querySelectorAll('.scrub-zone');
+const sliderTip = document.getElementById('sliderTip');
+
+const SCRUB_MIN = 100;      // $1
+const SCRUB_MAX = 100000;   // $1000
+
+// Track if user has seen the hint (disabled for testing)
+let hasSeenHint = false;
+let hintTimeout = null;
+let currentZoneIdx = 0;
+
+// Speed tiers based on vertical distance from slider
+const SCRUB_SPEEDS = [
+  { dist: 0, rate: 1, label: 'Full Speed' },
+  { dist: 50, rate: 0.5, label: 'Half Speed' },
+  { dist: 100, rate: 0.25, label: 'Quarter Speed' },
+  { dist: 150, rate: 0.1, label: 'Fine' },
+];
+
+let scrubState = null;
+
+function updateScrubUI() {
+  const pct = (TRANSFER_CENTS - SCRUB_MIN) / (SCRUB_MAX - SCRUB_MIN) * 100;
+  scrubFill.style.width = `${pct}%`;
+  scrubThumb.style.left = `${pct}%`;
+  sliderLabel.textContent = formatAmount(TRANSFER_CENTS);
+}
+updateScrubUI();
+
+function getScrubSpeed(vertDist) {
+  const d = Math.abs(vertDist);
+  for (let i = SCRUB_SPEEDS.length - 1; i >= 0; i--) {
+    if (d >= SCRUB_SPEEDS[i].dist) return { ...SCRUB_SPEEDS[i], idx: i };
+  }
+  return { ...SCRUB_SPEEDS[0], idx: 0 };
+}
+
+function updateZoneIndicator(zoneIdx) {
+  if (zoneIdx === currentZoneIdx) return;
+  currentZoneIdx = zoneIdx;
+  zoneEls.forEach((el, i) => {
+    el.classList.toggle('active', i === zoneIdx);
+  });
+}
+
+function showHint(x, y) {
+  if (hasSeenHint) return;
+  scrubHint.style.left = `${x}px`;
+  scrubHint.style.top = `${y + 50}px`;
+  scrubHint.classList.add('visible');
+}
+
+function hideHint() {
+  scrubHint.classList.remove('visible');
+}
+
+function positionZones(originY) {
+  // Position zone indicator to the right, aligned with finger origin
+  scrubZones.style.top = `${originY - 30}px`;
+}
+
+function getThumbCenter() {
+  const thumbRect = scrubThumb.getBoundingClientRect();
+  return {
+    x: thumbRect.left + thumbRect.width / 2,
+    y: thumbRect.top + thumbRect.height / 2
+  };
+}
+
+scrubSlider.addEventListener('pointerdown', (e) => {
+  e.preventDefault();
+  scrubSlider.classList.add('dragging');
+
+  const rect = scrubSlider.getBoundingClientRect();
+  const trackWidth = rect.width;
+  const valueRange = SCRUB_MAX - SCRUB_MIN;
+
+  // Jump to click position
+  const clickPct = Math.max(0, Math.min(1, (e.clientX - rect.left) / trackWidth));
+  TRANSFER_CENTS = Math.round((SCRUB_MIN + clickPct * valueRange) / 100) * 100;
+  TRANSFER_CENTS = Math.max(SCRUB_MIN, Math.min(SCRUB_MAX, TRANSFER_CENTS));
+  updateScrubUI();
+
+  scrubState = {
+    lastX: e.clientX,
+    lastY: e.clientY,
+    originY: e.clientY,  // where they first touched (for measuring vertical distance)
+    trackWidth,
+    valueRange,
+    rect
+  };
+
+  // Show hint after a short delay if user hasn't seen it
+  if (!hasSeenHint) {
+    hintTimeout = setTimeout(() => {
+      showHint(e.clientX, e.clientY);
+    }, 400);
+  }
+
+  // Position zone indicator
+  positionZones(e.clientY);
+  updateZoneIndicator(0);
+
+  // Hide static tip during interaction
+  if (!hasSeenHint) {
+    sliderTip.style.opacity = '0';
+  }
+});
+
+window.addEventListener('pointermove', (e) => {
+  if (!scrubState) return;
+
+  // Incremental delta since last move
+  const dx = e.clientX - scrubState.lastX;
+  const vertDist = e.clientY - scrubState.originY;
+
+  const speed = getScrubSpeed(vertDist);
+  scrubSpeedEl.textContent = `${speed.label} · ${formatAmount(TRANSFER_CENTS)}`;
+
+  // Position the speed label near the finger
+  scrubSpeedEl.style.left = `${e.clientX}px`;
+  scrubSpeedEl.style.top = `${e.clientY - 40}px`;
+  scrubSpeedEl.style.transform = 'translateX(-50%)';
+
+  // Draw tether line from thumb to finger
+  const thumb = getThumbCenter();
+  scrubLine.setAttribute('x1', thumb.x);
+  scrubLine.setAttribute('y1', thumb.y);
+  scrubLine.setAttribute('x2', e.clientX);
+  scrubLine.setAttribute('y2', e.clientY);
+
+  // Update zone indicator
+  updateZoneIndicator(speed.idx);
+
+  // Hide hint once user drags down (they've discovered the feature)
+  if (vertDist > 30) {
+    clearTimeout(hintTimeout);
+    hideHint();
+  }
+
+  // Apply incremental change scaled by speed
+  const valueDelta = (dx / scrubState.trackWidth) * scrubState.valueRange * speed.rate;
+  let newValue = TRANSFER_CENTS + valueDelta;
+  newValue = Math.round(newValue / 100) * 100;
+  newValue = Math.max(SCRUB_MIN, Math.min(SCRUB_MAX, newValue));
+
+  TRANSFER_CENTS = newValue;
+  updateScrubUI();
+
+  // Update last position for next frame
+  scrubState.lastX = e.clientX;
+  scrubState.lastY = e.clientY;
+});
+
+window.addEventListener('pointerup', () => {
+  if (!scrubState) return;
+  scrubSlider.classList.remove('dragging');
+  scrubState = null;
+  clearTimeout(hintTimeout);
+  hideHint();
+  // Reset zones
+  zoneEls.forEach(el => el.classList.remove('active'));
+  currentZoneIdx = -1;
+  // Restore tip if user hasn't learned feature
+  if (!hasSeenHint) {
+    sliderTip.style.opacity = '';
+  }
+});
+
+window.addEventListener('pointercancel', () => {
+  if (!scrubState) return;
+  scrubSlider.classList.remove('dragging');
+  scrubState = null;
+  clearTimeout(hintTimeout);
+  hideHint();
+  zoneEls.forEach(el => el.classList.remove('active'));
+  currentZoneIdx = -1;
+  if (!hasSeenHint) {
+    sliderTip.style.opacity = '';
+  }
+});
+
+// Pointer events
+grid.addEventListener('pointerdown', onPointerDown);
+window.addEventListener('pointermove', onPointerMove);
+window.addEventListener('pointerup', onPointerUp);
+window.addEventListener('pointercancel', onPointerUp);
+window.addEventListener('touchend', onPointerUp);
+
+function onPointerDown(e) {
+  const box = e.target.closest('.box');
+  if (!box) return;
+
+  e.preventDefault();
+
+  const rect = box.getBoundingClientRect();
+  activeBox = box;
+  dragState = {
+    startX: e.clientX,
+    startY: e.clientY,
+    boxCenterX: rect.left + rect.width / 2,
+    boxCenterY: rect.top + rect.height / 2,
+    coinPopped: false,
+    lastDist: 0,
+  };
+  lastCreakTime = 0;
+
+  box.classList.add('dragging');
+}
+
+function doCreak(tension) {
+  // tension is 0..1 representing how close we are to popping
+  if (!navigator.vibrate) return;
+
+  const now = performance.now();
+  // Interval shrinks as tension rises — creaking gets faster
+  const interval = CREAK_INTERVAL_MAX - tension * (CREAK_INTERVAL_MAX - CREAK_INTERVAL_MIN);
+
+  if (now - lastCreakTime >= interval) {
+    // Buzz duration also grows slightly with tension
+    const buzzDuration = Math.round(CREAK_BUZZ_MS + tension * 8);
+    navigator.vibrate(buzzDuration);
+    lastCreakTime = now;
+  }
+}
+
+function spawnBurst(cx, cy) {
+  // Burst ring
+  burstEl.style.left = `${cx - 20}px`;
+  burstEl.style.top = `${cy - 20}px`;
+  burstEl.className = 'coin-burst';
+  void burstEl.offsetWidth;
+  burstEl.className = 'coin-burst go';
+
+  // Sparks
+  const SPARK_COUNT = 8;
+  for (let i = 0; i < SPARK_COUNT; i++) {
+    const spark = document.createElement('div');
+    spark.className = 'spark';
+    const angle = (Math.PI * 2 / SPARK_COUNT) * i + (Math.random() - 0.5) * 0.5;
+    const dist = 25 + Math.random() * 20;
+    spark.style.left = `${cx - 2}px`;
+    spark.style.top = `${cy - 2}px`;
+    spark.style.setProperty('--sx', `${Math.cos(angle) * dist}px`);
+    spark.style.setProperty('--sy', `${Math.sin(angle) * dist}px`);
+    document.body.appendChild(spark);
+    void spark.offsetWidth;
+    spark.classList.add('go');
+    spark.addEventListener('animationend', () => spark.remove());
+  }
+}
+
+function onPointerMove(e) {
+  if (!activeBox || !dragState) return;
+
+  const dx = e.clientX - dragState.startX;
+  const dy = e.clientY - dragState.startY;
+  const dist = Math.sqrt(dx * dx + dy * dy);
+
+  if (!dragState.coinPopped) {
+    const factor = DRAG_LIMIT * (1 - Math.exp(-dist / (DRAG_LIMIT * 4)));
+    const angle = Math.atan2(dy, dx);
+    const moveX = Math.cos(angle) * factor;
+    const moveY = Math.sin(angle) * factor;
+
+    // Deform the box — stretch toward finger, squash perpendicular
+    const tension = Math.min(dist / POP_THRESHOLD, 1);
+    const stretchAmount = 1 + tension * 0.25;   // up to 1.25x along drag axis
+    const squashAmount = 1 - tension * 0.12;   // down to 0.88x perpendicular
+    const angleDeg = angle * (180 / Math.PI);
+
+    // rotate → scale (stretch along X = drag direction) → rotate back, then translate
+    activeBox.style.transform = `translate(${moveX}px, ${moveY}px) rotate(${angleDeg}deg) scale(${stretchAmount}, ${squashAmount}) rotate(${-angleDeg}deg)`;
+
+    // Haptic creak — starts after 20% of threshold
+    const creakTension = Math.max(0, (dist - POP_THRESHOLD * 0.2)) / (POP_THRESHOLD * 0.8);
+    if (creakTension > 0 && creakTension < 1) {
+      doCreak(Math.min(creakTension, 1));
+    }
+
+    dragState.lastDist = dist;
+
+    // Pop the coin
+    if (dist >= POP_THRESHOLD) {
+      dragState.coinPopped = true;
+
+      // Capture the current deformed transform as the animation start
+      const currentTransform = activeBox.style.transform;
+      const mx = Math.cos(angle) * factor;
+      const my = Math.sin(angle) * factor;
+
+      // Snap-back via Web Animations — starts from exact deformed state
+      // Capture box ref locally since activeBox gets nulled on pointerup
+      const snapBox = activeBox;
+      snapBox.style.transition = 'none';
+      const snapAnim = snapBox.animate([
+        { transform: currentTransform },
+        { transform: `translate(${-mx * 2.0}px, ${-my * 2.0}px) scale(0.85)`, offset: 0.12 },
+        { transform: `translate(${mx * 1.0}px, ${my * 1.0}px) scale(1.1)`, offset: 0.28 },
+        { transform: `translate(${-mx * 0.4}px, ${-my * 0.4}px) scale(0.93)`, offset: 0.44 },
+        { transform: `translate(${mx * 0.15}px, ${my * 0.15}px) scale(1.03)`, offset: 0.60 },
+        { transform: `translate(${-mx * 0.05}px, ${-my * 0.05}px) scale(0.99)`, offset: 0.78 },
+        { transform: 'translate(0, 0) scale(1)' },
+      ], {
+        duration: 700,
+        easing: 'linear',
+        fill: 'forwards',
+      });
+      snapAnim.onfinish = () => {
+        snapAnim.cancel();
+        snapBox.style.transform = 'translate(0, 0) scale(1)';
+      };
+
+      // Coin zips from box center to finger using rAF lerp
+      const bx = dragState.boxCenterX;
+      const by = dragState.boxCenterY;
+      dragState.coinPhase = 'zipping';
+      dragState.pendingFingerX = e.clientX;
+      dragState.pendingFingerY = e.clientY;
+
+      // Place coin at box center, visible (smaller size)
+      coinEl.className = 'coin';
+      coinEl.style.transition = 'none';
+      coinEl.style.left = `${bx - 20}px`;
+      coinEl.style.top = `${by - 20}px`;
+      coinEl.style.opacity = '1';
+      coinEl.style.transform = 'scale(0.7)';
+
+      // Lerp coin from current pos to finger over frames
+      let coinX = bx;
+      let coinY = by;
+      const ZIP_SPEED = 0.35; // lerp factor per frame
+
+      function zipTick() {
+        if (!dragState || dragState.coinPhase !== 'zipping') return;
+
+        const targetX = dragState.pendingFingerX;
+        const targetY = dragState.pendingFingerY;
+        coinX += (targetX - coinX) * ZIP_SPEED;
+        coinY += (targetY - coinY) * ZIP_SPEED;
+
+        coinEl.style.left = `${coinX - 20}px`;
+        coinEl.style.top = `${coinY - 20}px`;
+
+        // Close enough? Switch to free and start orbit
+        const d = Math.sqrt((targetX - coinX) ** 2 + (targetY - coinY) ** 2);
+        if (d < 2) {
+          coinEl.style.left = `${targetX - 20}px`;
+          coinEl.style.top = `${targetY - 20}px`;
+          dragState.coinPhase = 'free';
+          // Start orbit immediately (defined later in script)
+          if (typeof startOrbit === 'function') startOrbit();
+          return;
+        }
+
+        requestAnimationFrame(zipTick);
+      }
+      requestAnimationFrame(zipTick);
+
+      spawnBurst(bx, by);
+
+      // Big "snap" vibration on break
+      if (navigator.vibrate) navigator.vibrate([0, 10, 40]);
+    }
+  } else {
+    // Always track finger for the zip target
+    dragState.pendingFingerX = e.clientX;
+    dragState.pendingFingerY = e.clientY;
+
+    // Don't move coin position while zipping (lerp handles it)
+    // But still detect drop targets during zip
+    if (dragState.coinPhase === 'zipping') {
+      // fall through to drop target detection below
+    }
+
+    // Check if coin is over another box (not the source)
+    const hitBox = getDropTarget(e.clientX, e.clientY);
+
+    if (hitBox && hitBox !== currentDropTarget) {
+      // Restore previous target's amount
+      if (currentDropTarget) {
+        currentDropTarget.classList.remove('drop-target');
+        restorePreview(currentDropTarget);
+      }
+      hitBox.classList.add('drop-target');
+      currentDropTarget = hitBox;
+
+      // Show preview on both source and target
+      showPreview(activeBox, hitBox);
+    } else if (!hitBox && currentDropTarget) {
+      currentDropTarget.classList.remove('drop-target');
+      restorePreview(currentDropTarget);
+      restorePreview(activeBox);
+      currentDropTarget = null;
+    }
+
+    // Coin position is now handled by orbit animation when in 'free' phase
+    // Just ensure visibility
+    if (dragState.coinPhase === 'free') {
+      coinEl.style.transition = 'none';
+      coinEl.style.opacity = '1';
+    }
+  }
+}
+
+function getDropTarget(x, y) {
+  const boxes = grid.querySelectorAll('.box');
+  for (const box of boxes) {
+    if (box === activeBox) continue;
+    const r = box.getBoundingClientRect();
+    if (x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) {
+      return box;
+    }
+  }
+  return null;
+}
+
+function showPreview(sourceBox, targetBox) {
+  const sourceIdx = parseInt(sourceBox.dataset.index);
+  const targetIdx = parseInt(targetBox.dataset.index);
+  const sourceEnv = envelopes[sourceIdx];
+  const targetEnv = envelopes[targetIdx];
+
+  const transferAmount = Math.min(TRANSFER_CENTS, Math.abs(sourceEnv.value));
+
+  // Remove any existing delta badges
+  clearDeltaBadge(sourceEnv.amountEl);
+  clearDeltaBadge(targetEnv.amountEl);
+
+  // Add inline delta badges
+  const minusBadge = document.createElement('span');
+  minusBadge.className = 'delta-badge minus';
+  minusBadge.textContent = `-${formatAmount(transferAmount)}`;
+  sourceEnv.amountEl.appendChild(minusBadge);
+
+  const plusBadge = document.createElement('span');
+  plusBadge.className = 'delta-badge plus';
+  plusBadge.textContent = `+${formatAmount(transferAmount)}`;
+  targetEnv.amountEl.appendChild(plusBadge);
+}
+
+function clearDeltaBadge(amountEl) {
+  const badge = amountEl.querySelector('.delta-badge');
+  if (badge) badge.remove();
+}
+
+function restorePreview(box) {
+  const idx = parseInt(box.dataset.index);
+  const env = envelopes[idx];
+  clearDeltaBadge(env.amountEl);
+}
+
+function spawnAmountBadge(box, text, type) {
+  const badge = document.createElement('div');
+  badge.className = `amount-badge ${type}`;
+  badge.textContent = text;
+  badge.style.position = 'fixed';
+
+  // Position centered over the icon
+  const rect = box.getBoundingClientRect();
+  const icon = box.querySelector('.box-icon');
+  const iconRect = icon ? icon.getBoundingClientRect() : rect;
+  badge.style.left = `${iconRect.left + iconRect.width / 2}px`;
+  badge.style.top = `${iconRect.top + iconRect.height / 2}px`;
+
+  document.body.appendChild(badge);
+  badge.addEventListener('animationend', () => badge.remove());
+}
+
+function transferCoins(sourceBox, targetBox) {
+  const GRAVITY = 0.08;         // gentler gravitational pull
+  const EMIT_SPEED = 2.0;       // slower outward velocity
+  const EMIT_STAGGER = 70;      // ms between each coin launch
+  const ABSORB_RADIUS = 45;     // roughly half the box size — touching = caught
+  const DRAG = 0.98;            // slightly less drag for smoother arcs
+  const COIN_R = 16;            // half coin size for edge bouncing
+
+  const sourceIdx = parseInt(sourceBox.dataset.index);
+  const targetIdx = parseInt(targetBox.dataset.index);
+  const sourceEnv = envelopes[sourceIdx];
+  const targetEnv = envelopes[targetIdx];
+
+  // Transfer amount — move $5 per transfer, or whatever the source has
+  const transferAmount = Math.min(TRANSFER_CENTS, Math.abs(sourceEnv.value));
+  if (transferAmount <= 0) return; // nothing to transfer
+
+  // Scale coin count with transfer amount: 3 coins at $1, up to ~12 at $50
+  const COIN_COUNT = Math.max(3, Math.min(12, Math.round(transferAmount / 150)));
+
+  // Per-coin amount
+  const perCoin = transferAmount / COIN_COUNT;
+
+  // Start the smooth count animations on both amounts
+  const sourceFrom = sourceEnv.value;
+  const targetFrom = targetEnv.value;
+  const sourceTo = sourceFrom - transferAmount;
+  const targetTo = targetFrom + transferAmount;
+
+  // Amounts animate as coins emit/land
+  let sourceDisplayed = sourceFrom;
+  let targetDisplayed = targetFrom;
+
+  const sr = sourceBox.getBoundingClientRect();
+  const tr = targetBox.getBoundingClientRect();
+  const sx = sr.left + sr.width / 2;
+  const sy = sr.top + sr.height / 2;
+  const tx = tr.left + tr.width / 2;
+  const ty = tr.top + tr.height / 2;
+
+  // Source box gentle deflate
+  sourceBox.animate([
+    { transform: 'scale(1)' },
+    { transform: 'scale(0.88)', offset: 0.3 },
+    { transform: 'scale(0.92)', offset: 0.7 },
+    { transform: 'scale(1)' },
+  ], { duration: 1200, easing: 'ease-in-out' });
+
+  if (navigator.vibrate) navigator.vibrate(20);
+
+  // Floating +/- badges at top of envelopes
+  const badgeText = formatAmount(transferAmount);
+  spawnAmountBadge(sourceBox, `-${badgeText}`, 'minus');
+  spawnAmountBadge(targetBox, `+${badgeText}`, 'plus');
+
+  // Flash source amount on transfer start
+  sourceEnv.amountEl.classList.remove('flash-up', 'flash-down');
+  void sourceEnv.amountEl.offsetWidth;
+  sourceEnv.amountEl.classList.add('flash-down');
+
+  let landed = 0;
+  const particles = [];
+
+  for (let i = 0; i < COIN_COUNT; i++) {
+    const coin = document.createElement('div');
+    coin.className = 'transfer-coin';
+    coin.textContent = '$';
+    coin.style.opacity = '0';
+    document.body.appendChild(coin);
+
+    // Emit direction — spread around a circle
+    const angle = (Math.PI * 2 / COIN_COUNT) * i + (Math.random() - 0.5) * 0.6;
+    const speed = EMIT_SPEED * (0.8 + Math.random() * 0.4);
+
+    particles.push({
+      el: coin,
+      x: sx,
+      y: sy,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed,
+      scale: 0,
+      rotation: 0,
+      rotSpeed: (Math.random() - 0.5) * 3,
+      alive: false,     // starts inactive, launched by stagger
+      launched: false,
+    });
+  }
+
+  // Stagger launches — tick source amount down as each coin emits
+  particles.forEach((p, i) => {
+    setTimeout(() => {
+      p.alive = true;
+      p.launched = true;
+
+      // Tick source down as coins leave
+      const emitted = i + 1;
+      sourceDisplayed = sourceFrom - (perCoin * emitted);
+      if (emitted === COIN_COUNT) sourceDisplayed = sourceTo;
+      sourceEnv.amountEl.textContent = formatAmount(Math.round(sourceDisplayed));
+      sourceEnv.amountEl.classList.toggle('negative', sourceDisplayed < 0);
+      updateBar(sourceEnv, sourceDisplayed);
+    }, i * EMIT_STAGGER);
+  });
+
+  function tick() {
+    let allDone = true;
+
+    for (const p of particles) {
+      if (!p.launched) { allDone = false; continue; }
+      if (!p.alive) continue;
+      allDone = false;
+
+      // Grow in during first frames
+      if (p.scale < 1) {
+        p.scale = Math.min(1, p.scale + 0.08);
+        p.el.style.opacity = '1';
+      }
+
+      // Gravity toward target
+      const dx = tx - p.x;
+      const dy = ty - p.y;
+      const distSq = dx * dx + dy * dy;
+      const dist = Math.sqrt(distSq);
+
+      // Inverse square gravity (strong when close)
+      const force = GRAVITY * Math.max(1, 8000 / distSq);
+      p.vx += (dx / dist) * force;
+      p.vy += (dy / dist) * force;
+
+      // Constant inward drift — prevents orbiting
+      p.vx += (dx / dist) * 0.25;
+      p.vy += (dy / dist) * 0.25;
+
+      // Air drag
+      p.vx *= DRAG;
+      p.vy *= DRAG;
+
+      p.x += p.vx;
+      p.y += p.vy;
+      p.rotation += p.rotSpeed;
+
+      // Bounce off screen edges
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+      if (p.x < COIN_R) { p.x = COIN_R; p.vx = Math.abs(p.vx) * 0.6; }
+      if (p.x > vw - COIN_R) { p.x = vw - COIN_R; p.vx = -Math.abs(p.vx) * 0.6; }
+      if (p.y < COIN_R) { p.y = COIN_R; p.vy = Math.abs(p.vy) * 0.6; }
+      if (p.y > vh - COIN_R) { p.y = vh - COIN_R; p.vy = -Math.abs(p.vy) * 0.6; }
+
+      // Scale shrinks as it gets close to target
+      const approachScale = Math.min(1, dist / 60);
+      const renderScale = p.scale * (0.3 + approachScale * 0.7);
+
+      p.el.style.left = `${p.x - 14}px`;
+      p.el.style.top = `${p.y - 14}px`;
+      p.el.style.transform = `scale(${renderScale}) rotate(${p.rotation}deg)`;
+      p.el.style.opacity = Math.min(1, dist / 20);
+
+      // Spawn trail sparks (every 3rd frame, only when moving fast enough)
+      p.trailFrame = (p.trailFrame || 0) + 1;
+      const speed = Math.sqrt(p.vx * p.vx + p.vy * p.vy);
+      if (p.trailFrame % 3 === 0 && speed > 2 && dist > 50) {
+        spawnTrailSpark(p.x, p.y);
+      }
+
+      // Absorbed?
+      if (dist < ABSORB_RADIUS) {
+        p.alive = false;
+        p.el.remove();
+        landed++;
+
+        // Tick the target amount up — each coin carries its share
+        targetDisplayed += perCoin;
+
+        // Snap to final values on last coin to avoid rounding drift
+        if (landed === COIN_COUNT) {
+          targetDisplayed = targetTo;
+          sourceEnv.value = sourceTo;
+        }
+
+        targetEnv.amountEl.textContent = formatAmount(Math.round(targetDisplayed));
+        targetEnv.amountEl.classList.toggle('negative', targetDisplayed < 0);
+        updateBar(targetEnv, targetDisplayed);
+
+        // Flash target green on each landing
+        targetEnv.amountEl.classList.remove('flash-up');
+        void targetEnv.amountEl.offsetWidth;
+        targetEnv.amountEl.classList.add('flash-up');
+
+        targetBox.animate([
+          { transform: 'scale(1)' },
+          { transform: `scale(${1.04 + (landed / COIN_COUNT) * 0.08})` },
+          { transform: 'scale(1)' },
+        ], { duration: 200, easing: 'cubic-bezier(0.175, 0.885, 0.32, 1.275)' });
+
+        if (navigator.vibrate) navigator.vibrate(8);
+
+        if (landed === COIN_COUNT) {
+          // Commit final target value
+          targetEnv.value = targetTo;
+
+          // Clear flash colors after a beat
+          setTimeout(() => {
+            sourceEnv.amountEl.classList.remove('flash-down');
+            targetEnv.amountEl.classList.remove('flash-up');
+          }, 400);
+
+          targetBox.animate([
+            { transform: 'scale(1)' },
+            { transform: 'scale(1.15)' },
+            { transform: 'scale(0.96)' },
+            { transform: 'scale(1.04)' },
+            { transform: 'scale(1)' },
+          ], { duration: 350, easing: 'linear' });
+          if (navigator.vibrate) navigator.vibrate(25);
+        }
+      }
+    }
+
+    if (!allDone) requestAnimationFrame(tick);
+  }
+
+  requestAnimationFrame(tick);
+}
+
+function onPointerUp(e) {
+  if (!activeBox) return;
+
+  // Kill zip loop immediately
+  if (dragState) dragState.coinPhase = 'dead';
+
+  const droppedOnTarget = currentDropTarget && dragState && dragState.coinPopped;
+  const sourceBox = activeBox;
+  const targetBox = currentDropTarget;
+
+  // Reset box
+  sourceBox.style.transition = 'transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+  sourceBox.style.transform = 'translate(0, 0)';
+  sourceBox.classList.remove('dragging');
+
+  // Hide the dragged coin
+  coinEl.className = 'coin';
+  coinEl.removeAttribute('style');
+
+  // If dropped on a target, trigger the transfer
+  if (droppedOnTarget) {
+    restorePreview(sourceBox);
+    restorePreview(targetBox);
+    transferCoins(sourceBox, targetBox);
+  }
+
+  // Clear drop target
+  if (targetBox) {
+    if (!droppedOnTarget) {
+      restorePreview(targetBox);
+      restorePreview(sourceBox);
+    }
+    targetBox.classList.remove('drop-target');
+  }
+
+  activeBox = null;
+  dragState = null;
+  currentDropTarget = null;
+  lastCreakTime = 0;
+}
+
+// Clean up transitions
+grid.addEventListener('transitionend', (e) => {
+  if (e.target.classList.contains('box') && !e.target.classList.contains('dragging')) {
+    e.target.style.transition = '';
+  }
+});
+
+// ── Sparkle trail ──
+let trailInterval = null;
+
+function startTrail() {
+  if (trailInterval) return;
+  trailInterval = setInterval(() => {
+    if (!dragState || !dragState.coinPopped) return;
+    const cx = parseFloat(coinEl.style.left) + 20;
+    const cy = parseFloat(coinEl.style.top) + 20;
+    if (isNaN(cx) || isNaN(cy)) return;
+    for (let i = 0; i < 3; i++) spawnTrailSpark(cx, cy);
+  }, 20);
+}
+
+function stopTrail() {
+  clearInterval(trailInterval);
+  trailInterval = null;
+}
+
+function spawnTrailSpark(x, y) {
+  const spark = document.createElement('div');
+  spark.className = 'trail-spark';
+  const sizes = [3, 4, 5, 6];
+  const size = sizes[Math.floor(Math.random() * sizes.length)];
+  const gridSize = 4;
+  const spread = 16;
+  const dx = Math.round((Math.random() - 0.5) * spread / gridSize) * gridSize;
+  const dy = Math.round((Math.random() - 0.5) * spread / gridSize) * gridSize;
+
+  spark.style.width = `${size}px`;
+  spark.style.height = `${size}px`;
+  spark.style.left = `${Math.round(x / 2) * 2 + dx}px`;
+  spark.style.top = `${Math.round(y / 2) * 2 + dy}px`;
+  spark.style.opacity = '1';
+  document.body.appendChild(spark);
+
+  const driftX = Math.round((dx * 1.5 + (Math.random() - 0.5) * 12) / gridSize) * gridSize;
+  const driftY = Math.round((dy + 8 + Math.random() * 12) / gridSize) * gridSize;
+
+  spark.animate([
+    { opacity: 1, transform: `translate(0, 0)` },
+    { opacity: 0.7, transform: `translate(${driftX * 0.5}px, ${driftY * 0.4}px)`, offset: 0.5 },
+    { opacity: 0, transform: `translate(${driftX}px, ${driftY}px)` },
+  ], { duration: 300 + Math.random() * 200, easing: 'steps(6)' }).onfinish = () => spark.remove();
+}
+
+// ── Ambient floating particles ──
+function spawnAmbientParticle() {
+  const p = document.createElement('div');
+  p.className = 'ambient-particle';
+  const size = 2 + Math.random() * 4;
+  const startX = Math.random() * window.innerWidth;
+  const startY = window.innerHeight + size;
+  const drift = (Math.random() - 0.5) * 80;
+  const duration = 6000 + Math.random() * 8000;
+
+  p.style.width = `${size}px`;
+  p.style.height = `${size}px`;
+  p.style.left = `${startX}px`;
+  p.style.top = `${startY}px`;
+
+  document.body.appendChild(p);
+
+  p.animate([
+    { opacity: 0, transform: `translate(0, 0)` },
+    { opacity: 0.08, offset: 0.1 },
+    { opacity: 0.06, offset: 0.8 },
+    { opacity: 0, transform: `translate(${drift}px, ${-startY - 40}px)` },
+  ], { duration, easing: 'linear' }).onfinish = () => p.remove();
+}
+
+// Stagger initial particles, then keep spawning
+for (let i = 0; i < 12; i++) {
+  setTimeout(spawnAmbientParticle, Math.random() * 4000);
+}
+setInterval(spawnAmbientParticle, 800);
+
+// ── Random Gem Shine ──
+const gemIcons = document.querySelectorAll('.box-icon');
+
+function triggerRandomShine() {
+  // Pick a random gem
+  const gem = gemIcons[Math.floor(Math.random() * gemIcons.length)];
+
+  // Remove class first to allow re-triggering
+  gem.classList.remove('shining');
+  void gem.offsetWidth; // Force reflow
+  gem.classList.add('shining');
+
+  // Remove class after animation completes
+  setTimeout(() => gem.classList.remove('shining'), 600);
+
+  // Schedule next shine at random interval (3-12 seconds)
+  const nextDelay = 3000 + Math.random() * 9000;
+  setTimeout(triggerRandomShine, nextDelay);
+}
+
+// Start the random shine cycle after initial delay
+setTimeout(triggerRandomShine, 1000 + Math.random() * 2000);
+
+// ── Random Gem Flip (3D rotate) ──
+function triggerRandomFlip() {
+  // Pick a random gem
+  const gem = gemIcons[Math.floor(Math.random() * gemIcons.length)];
+
+  // Don't flip if already flipping
+  if (gem.classList.contains('flipping')) {
+    setTimeout(triggerRandomFlip, 2000);
+    return;
+  }
+
+  gem.classList.add('flipping');
+
+  // Remove class after animation
+  setTimeout(() => gem.classList.remove('flipping'), 800);
+
+  // Schedule next flip at random interval (8-20 seconds - rare)
+  const nextDelay = 8000 + Math.random() * 12000;
+  setTimeout(triggerRandomFlip, nextDelay);
+}
+
+// Start the random flip cycle after longer initial delay
+setTimeout(triggerRandomFlip, 4000 + Math.random() * 3000);
+
+// ── Amount Edit Modal ──
+const amountModal = document.getElementById('amountModal');
+const amountInput = document.getElementById('amountInput');
+const amountCancel = document.getElementById('amountCancel');
+const amountConfirm = document.getElementById('amountConfirm');
+const presetBtns = document.querySelectorAll('.amount-preset');
+
+function openAmountModal() {
+  // Set current value
+  amountInput.value = '$' + (TRANSFER_CENTS / 100);
+  amountModal.classList.add('visible');
+  // Focus and select after animation
+  setTimeout(() => {
+    amountInput.focus();
+    amountInput.select();
+  }, 100);
+}
+
+function closeAmountModal() {
+  amountModal.classList.remove('visible');
+}
+
+function confirmAmount() {
+  // Parse the input - strip $ and parse as float
+  let val = amountInput.value.replace(/[^0-9.]/g, '');
+  let cents = Math.round(parseFloat(val) * 100);
+  if (isNaN(cents) || cents < SCRUB_MIN) cents = SCRUB_MIN;
+  if (cents > SCRUB_MAX) cents = SCRUB_MAX;
+  TRANSFER_CENTS = cents;
+  updateScrubUI();
+  closeAmountModal();
+}
+
+sliderLabel.addEventListener('click', (e) => {
+  e.stopPropagation();
+  openAmountModal();
+});
+
+amountCancel.addEventListener('click', closeAmountModal);
+amountConfirm.addEventListener('click', confirmAmount);
+
+// Close on overlay click
+amountModal.addEventListener('click', (e) => {
+  if (e.target === amountModal) closeAmountModal();
+});
+
+// Preset buttons
+presetBtns.forEach(btn => {
+  btn.addEventListener('click', () => {
+    const cents = parseInt(btn.dataset.amount);
+    amountInput.value = '$' + (cents / 100);
+  });
+});
+
+// Enter to confirm
+amountInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    confirmAmount();
+  } else if (e.key === 'Escape') {
+    closeAmountModal();
+  }
+});
+
+// Format input as user types
+amountInput.addEventListener('input', (e) => {
+  let val = e.target.value.replace(/[^0-9.]/g, '');
+  // Ensure only one decimal point
+  const parts = val.split('.');
+  if (parts.length > 2) {
+    val = parts[0] + '.' + parts.slice(1).join('');
+  }
+  // Limit decimal places
+  if (parts[1] && parts[1].length > 2) {
+    val = parts[0] + '.' + parts[1].slice(0, 2);
+  }
+  e.target.value = val ? '$' + val : '';
+});
+
+// ── Coin Float Animation (gravity-based) ──
+const COIN_SCALE = 0.7;
+const FLOAT_GRAVITY = 0.15;
+const FLOAT_DAMPING = 0.94;
+const FLOAT_MAX_DIST = 40;
+const FLOAT_WANDER = 0.3;
+let floatRAF = null;
+let coinVx = 0, coinVy = 0, coinX = 0, coinY = 0, coinRotation = 0;
+
+function startOrbit() {
+  if (floatRAF) return;
+  coinX = dragState.pendingFingerX;
+  coinY = dragState.pendingFingerY;
+  const angle = Math.random() * Math.PI * 2;
+  coinVx = Math.cos(angle) * 3;
+  coinVy = Math.sin(angle) * 3;
+
+  function tick() {
+    if (!dragState || !dragState.coinPopped || dragState.coinPhase !== 'free') {
+      floatRAF = null;
+      return;
+    }
+    const targetX = dragState.pendingFingerX;
+    const targetY = dragState.pendingFingerY;
+    const dx = targetX - coinX;
+    const dy = targetY - coinY;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+
+    if (dist > 1) {
+      const pullStrength = FLOAT_GRAVITY * Math.min(dist / 20, 1.5);
+      coinVx += (dx / dist) * pullStrength;
+      coinVy += (dy / dist) * pullStrength;
+    }
+    coinVx += (Math.random() - 0.5) * FLOAT_WANDER;
+    coinVy += (Math.random() - 0.5) * FLOAT_WANDER;
+    coinVx *= FLOAT_DAMPING;
+    coinVy *= FLOAT_DAMPING;
+    coinX += coinVx;
+    coinY += coinVy;
+
+    if (dist > FLOAT_MAX_DIST) {
+      const pushBack = (dist - FLOAT_MAX_DIST) * 0.1;
+      coinX -= (coinX - targetX) / dist * pushBack;
+      coinY -= (coinY - targetY) / dist * pushBack;
+    }
+
+    const speed = Math.sqrt(coinVx * coinVx + coinVy * coinVy);
+    coinRotation += speed * 3;
+    const wobble = COIN_SCALE * (1 + Math.sin(coinRotation * 0.1) * 0.08);
+
+    coinEl.style.left = `${coinX - 20}px`;
+    coinEl.style.top = `${coinY - 20}px`;
+    coinEl.style.transform = `scale(${wobble}) rotate(${coinRotation}deg)`;
+    floatRAF = requestAnimationFrame(tick);
+  }
+  floatRAF = requestAnimationFrame(tick);
+}
+
+function stopOrbit() {
+  if (floatRAF) {
+    cancelAnimationFrame(floatRAF);
+    floatRAF = null;
+  }
+  coinVx = coinVy = 0;
+}
+
+// ── Unified Event Handlers ──
+// Remove original handlers and set up consolidated ones
+grid.removeEventListener('pointerdown', onPointerDown);
+window.removeEventListener('pointermove', onPointerMove);
+window.removeEventListener('pointerup', onPointerUp);
+window.removeEventListener('pointercancel', onPointerUp);
+window.removeEventListener('touchend', onPointerUp);
+
+grid.addEventListener('pointerdown', (e) => {
+  onPointerDown(e);
+  startTrail();
+});
+
+window.addEventListener('pointermove', (e) => {
+  onPointerMove(e);
+});
+
+function handlePointerUp(e) {
+  stopOrbit();
+  stopTrail();
+  onPointerUp(e);
+}
+window.addEventListener('pointerup', handlePointerUp);
+window.addEventListener('pointercancel', handlePointerUp);
+window.addEventListener('touchend', handlePointerUp);
+
+</script>
+
+</body>
+</html>

@@ -1,0 +1,2588 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, user-scalable=no">
+<title>Loot — Reload Ceremony</title>
+<!-- Nunito (prod font) -->
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<!-- Phosphor Icons (regular + fill) -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/fill/style.css" />
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #0f0f1a;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    overflow: hidden;
+    -webkit-user-select: none;
+    user-select: none;
+    font-family: "Nunito", "Quicksand", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif;
+    color: #f0f0f5;
+  }
+
+  /* ── Ceremony Container (full-screen drawer) ── */
+
+  .ceremony {
+    position: fixed;
+    inset: 0;
+    max-width: 430px;
+    margin: 0 auto;
+    background: #242438;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* ── Progress Indicator ── */
+
+  .progress-header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 58px 0 8px;
+    flex-shrink: 0;
+  }
+
+  .progress-dots {
+    display: flex;
+    gap: 8px;
+  }
+
+  .progress-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: #606080;
+    transition: background-color 0.3s ease;
+  }
+
+  .progress-dot.active {
+    background: #9836fe;
+  }
+
+  /* ── Step Container ── */
+
+  .step-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .step {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 24px;
+    overflow-y: auto;
+    opacity: 0;
+    transform: translateX(40px);
+    pointer-events: none;
+    transition: none;
+  }
+
+  .step.active {
+    opacity: 1;
+    transform: translateX(0);
+    pointer-events: auto;
+  }
+
+  /* ── Step 1: Debrief ── */
+
+  .debrief-icon {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #9836fe, #7a1fe0);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 24px;
+    box-shadow: 0 8px 32px rgba(152, 54, 254, 0.25);
+    opacity: 0;
+    transform: scale(0.5);
+  }
+
+  .debrief-icon i {
+    font-size: 40px;
+    color: #fff;
+  }
+
+  .debrief-title {
+    font-size: 28px;
+    font-weight: 700;
+    color: #f0f0f5;
+    margin-bottom: 4px;
+    text-align: center;
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+
+  .debrief-subtitle {
+    font-size: 16px;
+    color: #8888a8;
+    margin-bottom: 16px;
+    text-align: center;
+    opacity: 0;
+  }
+
+  .debrief-date {
+    font-size: 14px;
+    color: #8888a8;
+    margin-bottom: 16px;
+    opacity: 0;
+  }
+
+  .stats-row {
+    display: flex;
+    justify-content: center;
+    gap: 32px;
+    margin-bottom: 24px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid #32324d;
+    width: 100%;
+    max-width: 360px;
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  .stat-item {
+    text-align: center;
+  }
+
+  .stat-label {
+    font-size: 11px;
+    color: #8888a8;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .stat-value {
+    font-size: 20px;
+    font-weight: 700;
+    color: #dcdce8;
+  }
+
+  .stat-value.positive { color: #4ade80; }
+  .stat-value.negative { color: #f87171; }
+
+  .highlights-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #8888a8;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 16px;
+    text-align: left;
+    width: 100%;
+    max-width: 360px;
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  .insight-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: 100%;
+    max-width: 360px;
+    margin-bottom: 32px;
+  }
+
+  .insight-card {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px;
+    border-radius: 16px;
+    background: #1a1a2e;
+    border-left: 4px solid;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    opacity: 0;
+    transform: translateX(-40px);
+  }
+
+  .insight-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .insight-icon i {
+    font-size: 24px;
+  }
+
+  .insight-content {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .insight-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .insight-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: #dcdce8;
+  }
+
+  .insight-value {
+    font-size: 15px;
+    font-weight: 700;
+  }
+
+  .insight-subtitle {
+    font-size: 13px;
+    color: #8888a8;
+    line-height: 1.3;
+    margin-top: 2px;
+  }
+
+  /* ── Step 2: Leftovers ── */
+
+  .leftovers-title {
+    font-size: 24px;
+    font-weight: 700;
+    color: #f0f0f5;
+    margin-bottom: 4px;
+    text-align: center;
+    width: 100%;
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+
+  .leftovers-subtitle {
+    font-size: 14px;
+    color: #a0a0c0;
+    line-height: 1.4;
+    text-align: center;
+    width: 100%;
+    margin-bottom: 24px;
+    opacity: 0;
+  }
+
+  .leftovers-section-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #8888a8;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 12px;
+    text-align: center;
+    width: 100%;
+  }
+
+  .leftovers-grid {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 12px;
+    width: 100%;
+    margin-bottom: 24px;
+  }
+
+  .leftover-tile {
+    background: #1a1a2e;
+    border-radius: 14px;
+    padding: 20px 8px 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    min-height: 148px;
+    width: calc((100% - 24px) / 3);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+    cursor: grab;
+    touch-action: none;
+    transition: transform 0.15s ease, opacity 0.3s ease;
+  }
+
+  .leftover-tile.transferred {
+    opacity: 0.3;
+    cursor: default;
+  }
+
+  .leftover-tile-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    position: relative;
+    overflow: hidden;
+    box-shadow:
+      inset 0 3px 6px rgba(255,255,255,0.5),
+      inset 0 -3px 6px rgba(0,0,0,0.25),
+      inset 3px 0 6px rgba(255,255,255,0.1),
+      inset -3px 0 6px rgba(0,0,0,0.1),
+      0 4px 12px rgba(0,0,0,0.3),
+      0 0 20px rgba(152,54,254,0.15);
+    transform-style: preserve-3d;
+  }
+
+  .leftover-tile-icon i {
+    font-size: 26px;
+    position: relative;
+    z-index: 2;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+  }
+
+  .leftover-tile-icon::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: linear-gradient(135deg, rgba(255,255,255,0.2) 0%, transparent 40%);
+    border-radius: 10px;
+    pointer-events: none;
+  }
+
+  .leftover-tile-icon::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 50%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.5), transparent);
+    transform: skewX(-15deg);
+    pointer-events: none;
+    opacity: 0;
+  }
+
+  .leftover-tile-icon.shining::after {
+    animation: gemShine 0.6s ease-out forwards;
+  }
+
+  @keyframes gemShine {
+    0% { left: -50%; opacity: 0; }
+    20% { opacity: 0.8; }
+    80% { opacity: 0.8; }
+    100% { left: 150%; opacity: 0; }
+  }
+
+  @keyframes gemFloat {
+    0%, 100% { transform: translateY(0) rotate(0deg) scale(1); }
+    33% { transform: translateY(-2px) rotate(0.8deg) scale(1.015); }
+    66% { transform: translateY(-1px) rotate(-0.5deg) scale(1.01); }
+  }
+
+
+  .leftover-tile-name {
+    font-size: 11px;
+    font-weight: 500;
+    color: #a0a0c0;
+    text-align: center;
+    line-height: 1.25;
+  }
+
+  .leftover-tile-amount {
+    font-size: 14px;
+    font-weight: 700;
+    color: #f0f0f5;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .target-tile {
+    background: #1a1a2e;
+    border-radius: 14px;
+    padding: 20px 8px 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    min-height: 148px;
+    width: calc((100% - 24px) / 3);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+    border: 2px dashed #32324d;
+    transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.2s ease, border-color 0.2s ease;
+  }
+
+  .target-tile.drop-highlight {
+    border-color: #9836fe;
+    box-shadow: 0 0 0 3px rgba(152, 54, 254, 0.3);
+    transform: scale(1.05);
+  }
+
+  /* ── Step 3: Allocation ── */
+
+  .alloc-title {
+    font-size: 24px;
+    font-weight: 700;
+    color: #f0f0f5;
+    margin-bottom: 4px;
+    text-align: center;
+    opacity: 0;
+  }
+
+  .alloc-subtitle {
+    font-size: 14px;
+    color: #8888a8;
+    margin-bottom: 16px;
+    text-align: center;
+    opacity: 0;
+  }
+
+  .income-section {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    margin-bottom: 16px;
+    width: 100%;
+    opacity: 0;
+  }
+
+  .income-tile {
+    width: 140px;
+    flex-shrink: 0;
+  }
+
+  .income-tile .alloc-tile {
+    border: 2px solid #9836fe;
+    width: 100%;
+  }
+
+  .income-remaining {
+    font-size: 12px;
+    font-weight: 600;
+    color: #4ade80;
+    text-align: center;
+    margin-top: 4px;
+  }
+
+  .savings-overflow {
+    width: 140px;
+    flex-shrink: 0;
+    opacity: 0;
+    transform: translateX(-20px) scale(0.9);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+  }
+  .savings-overflow.visible {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+
+  .savings-overflow .alloc-tile {
+    border: 2px solid #4ade80;
+    width: 100%;
+  }
+
+  .savings-overflow-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #fb923c;
+    text-align: center;
+    margin-top: 4px;
+  }
+
+  .progress-bar-wrap {
+    width: 100%;
+    height: 8px;
+    flex-shrink: 0;
+    border-radius: 4px;
+    background: #32324d;
+    margin-bottom: 12px;
+    overflow: hidden;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+  .progress-bar-wrap.visible {
+    opacity: 1;
+  }
+
+  .progress-bar-fill {
+    height: 100%;
+    border-radius: 4px;
+    background: #9836fe;
+    transition: width 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .quick-actions {
+    display: flex;
+    gap: 8px;
+    width: 100%;
+    margin-bottom: 16px;
+    opacity: 0;
+  }
+
+  .btn-fill-all {
+    flex: 1;
+    padding: 8px 16px;
+    border-radius: 12px;
+    border: none;
+    background: #9836fe;
+    color: #fff;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    min-height: 36px;
+    font-family: inherit;
+    transition: filter 0.15s;
+  }
+
+  .btn-fill-all:active { filter: brightness(0.9); }
+
+  .btn-clear {
+    padding: 8px 16px;
+    border-radius: 12px;
+    border: none;
+    background: transparent;
+    color: #a0a0c0;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    min-height: 36px;
+    font-family: inherit;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .alloc-section-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #8888a8;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+    text-align: left;
+    width: 100%;
+    opacity: 0;
+  }
+
+  .alloc-grid {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 12px;
+    width: 100%;
+    margin-bottom: 16px;
+  }
+
+  .alloc-tile {
+    background: #1a1a2e;
+    border-radius: 14px;
+    padding: 16px 8px 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    width: calc((100% - 24px) / 3);
+    min-height: 148px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+    cursor: pointer;
+    transition: transform 0.15s ease;
+    position: relative;
+  }
+
+  .alloc-tile:active { transform: scale(0.96); }
+
+  .alloc-tile-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    position: relative;
+    overflow: hidden;
+    box-shadow:
+      inset 0 3px 6px rgba(255,255,255,0.5),
+      inset 0 -3px 6px rgba(0,0,0,0.25),
+      inset 3px 0 6px rgba(255,255,255,0.1),
+      inset -3px 0 6px rgba(0,0,0,0.1),
+      0 4px 12px rgba(0,0,0,0.3),
+      0 0 20px rgba(152,54,254,0.15);
+    transform-style: preserve-3d;
+  }
+
+  .alloc-tile-icon i {
+    font-size: 26px;
+    position: relative;
+    z-index: 2;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+  }
+
+  .alloc-tile-icon::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: linear-gradient(135deg, rgba(255,255,255,0.2) 0%, transparent 40%);
+    border-radius: 12px;
+    pointer-events: none;
+  }
+
+  .alloc-tile-icon::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 50%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.5), transparent);
+    transform: skewX(-15deg);
+    pointer-events: none;
+    opacity: 0;
+  }
+
+  .alloc-tile-icon.shining::after {
+    animation: gemShine 0.6s ease-out forwards;
+  }
+
+
+  .alloc-tile-name {
+    font-size: 11px;
+    font-weight: 500;
+    color: #a0a0c0;
+    text-align: center;
+    line-height: 1.25;
+  }
+
+  .alloc-tile-amount {
+    font-size: 16px;
+    font-weight: 700;
+    color: #f0f0f5;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .alloc-delta {
+    font-size: 11px;
+    font-weight: 600;
+    color: #4ade80;
+    background: rgba(74, 222, 128, 0.15);
+    padding: 1px 5px;
+    border-radius: 6px;
+    margin-left: 3px;
+  }
+
+
+  .alloc-tile-suggested {
+    font-size: 10px;
+    font-weight: 600;
+    color: #606080;
+    margin-top: -2px;
+  }
+
+  .savings-tag {
+    position: absolute;
+    top: 5px;
+    left: 5px;
+    font-size: 8px;
+    font-weight: 700;
+    color: #4ade80;
+    background: rgba(74, 222, 128, 0.12);
+    padding: 1px 5px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+
+  /* ── Step 4: Complete ── */
+
+  .complete-icon {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    background: #4ade80;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 24px;
+    box-shadow: 0 8px 32px rgba(74, 222, 128, 0.25);
+    opacity: 0;
+    transform: scale(0.3);
+  }
+
+  .complete-icon i {
+    font-size: 50px;
+    color: #fff;
+  }
+
+  .complete-title {
+    font-size: 28px;
+    font-weight: 700;
+    color: #f0f0f5;
+    margin-bottom: 8px;
+    text-align: center;
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  .complete-summary {
+    font-size: 16px;
+    color: #a0a0c0;
+    margin-bottom: 24px;
+    text-align: center;
+    opacity: 0;
+    transform: scale(0.8);
+  }
+
+  .complete-info-box {
+    background: #1a1a2e;
+    border-radius: 24px;
+    padding: 20px 32px;
+    margin-bottom: 32px;
+    min-width: 240px;
+    text-align: center;
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  .complete-days {
+    font-size: 16px;
+    font-weight: 500;
+    color: #c0c0d8;
+    margin-bottom: 8px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #32324d;
+  }
+
+  .complete-next {
+    font-size: 14px;
+    color: #a0a0c0;
+    padding-top: 8px;
+  }
+
+
+  /* ── Shared Buttons ── */
+
+  .btn-primary {
+    padding: 12px 32px;
+    border-radius: 24px;
+    border: none;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    min-height: 44px;
+    font-family: inherit;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: filter 0.15s, transform 0.15s;
+    color: #fff;
+  }
+
+  .btn-primary:active { transform: scale(0.97); }
+
+  .btn-purple {
+    background: linear-gradient(135deg, #9836fe, #7a1fe0);
+    box-shadow: 0 4px 16px rgba(152, 54, 254, 0.25);
+  }
+
+  .btn-green {
+    background: linear-gradient(135deg, #4ade80, #059669);
+    box-shadow: 0 4px 16px rgba(74, 222, 128, 0.25);
+  }
+
+  .btn-full {
+    width: 100%;
+    justify-content: center;
+    padding: 14px;
+    min-height: 52px;
+    font-size: 17px;
+    border-radius: 16px;
+  }
+
+  .complete-btn {
+    padding: 14px;
+    border: none;
+    border-radius: 16px;
+    font-size: 17px;
+    font-weight: 600;
+    min-height: 52px;
+    width: 100%;
+    cursor: pointer;
+    color: #fff;
+    font-family: inherit;
+    opacity: 0;
+    transform: scale(0.9);
+  }
+
+  /* ── Bottom bar for allocation ── */
+
+  .bottom-action {
+    padding: 16px;
+    border-top: 1px solid #32324d;
+    background: #242438;
+    flex-shrink: 0;
+  }
+
+  /* ── Coin Drag System ── */
+
+  .drag-coin {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, #f9e547, #f1c40f 40%, #d4a017 100%);
+    box-shadow:
+      0 2px 6px rgba(0,0,0,0.4),
+      inset 0 -2px 3px rgba(0,0,0,0.2),
+      inset 0 2px 3px rgba(255,255,255,0.3);
+    position: fixed;
+    pointer-events: none;
+    z-index: 10001;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 900;
+    color: #b8860b;
+    opacity: 0;
+  }
+
+  .coin-burst {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 2px solid rgba(249,229,71,0.6);
+    position: fixed;
+    pointer-events: none;
+    z-index: 10000;
+    opacity: 0;
+  }
+
+  .coin-burst.go {
+    animation: burstRing 0.4s ease-out forwards;
+  }
+
+  @keyframes burstRing {
+    0% { opacity: 0.8; transform: scale(0.3); }
+    100% { opacity: 0; transform: scale(2.5); }
+  }
+
+  .spark {
+    width: 4px;
+    height: 4px;
+    background: #f9e547;
+    border-radius: 50%;
+    position: fixed;
+    pointer-events: none;
+    z-index: 10000;
+    opacity: 0;
+  }
+
+  .spark.go {
+    animation: sparkFly 0.35s ease-out forwards;
+  }
+
+  @keyframes sparkFly {
+    0% { opacity: 1; transform: translate(0,0) scale(1); }
+    100% { opacity: 0; transform: translate(var(--sx), var(--sy)) scale(0); }
+  }
+
+  .trail-spark {
+    position: fixed;
+    pointer-events: none;
+    z-index: 99;
+    border-radius: 0;
+    background: #f9e547;
+    image-rendering: pixelated;
+    box-shadow:
+      0 0 0 1px rgba(241,196,15,0.6),
+      2px 2px 0 rgba(0,0,0,0.15);
+  }
+
+  .alloc-tile.drop-target {
+    box-shadow: 0 0 0 3px rgba(152,54,254,0.5);
+    transform: scale(1.05) !important;
+    transition: transform 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.15s ease !important;
+  }
+
+  .amount-badge {
+    position: fixed;
+    pointer-events: none;
+    z-index: 150;
+    font-size: 11px;
+    font-weight: 700;
+    font-family: "Nunito", sans-serif;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    opacity: 0;
+    padding: 2px 8px;
+    border-radius: 8px;
+  }
+
+  .amount-badge.minus {
+    color: #f87171;
+    background: rgba(248,113,113,0.15);
+    animation: floatAway 1.2s ease-out forwards;
+  }
+
+  .amount-badge.plus {
+    color: #4ade80;
+    background: rgba(74,222,128,0.15);
+    animation: floatAway 1.2s ease-out forwards;
+  }
+
+  @keyframes floatAway {
+    0% { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
+    70% { opacity: 0.7; transform: translateX(-50%) translateY(-30px) scale(1); }
+    100% { opacity: 0; transform: translateX(-50%) translateY(-45px) scale(0.95); }
+  }
+
+  .transfer-coin {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, #f9e547, #f1c40f 40%, #d4a017 100%);
+    box-shadow:
+      0 2px 6px rgba(0,0,0,0.4),
+      inset 0 -2px 3px rgba(0,0,0,0.2),
+      inset 0 2px 3px rgba(255,255,255,0.3);
+    position: fixed;
+    pointer-events: none;
+    z-index: 10001;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 900;
+    color: #b8860b;
+  }
+
+  /* ── Confetti ── */
+
+  .confetti-particle {
+    position: fixed;
+    pointer-events: none;
+    z-index: 10002;
+    transform: translate(-50%, -50%);
+  }
+
+  /* ── Coin stream ── */
+
+  .stream-coin {
+    position: fixed;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, #f9e547, #f1c40f 40%, #d4a017 100%);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+    pointer-events: none;
+    z-index: 1400;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 8px;
+    font-weight: 900;
+    color: #b8860b;
+  }
+
+  /* ── Allocation Drawer ── */
+
+  .drawer-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 2000;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease;
+  }
+  .drawer-backdrop.open { opacity: 1; pointer-events: auto; }
+
+  .alloc-drawer {
+    position: fixed;
+    left: 0; right: 0; bottom: 0;
+    background: #1a1a2e;
+    border-radius: 20px 20px 0 0;
+    z-index: 2001;
+    transform: translateY(100%);
+    transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    max-height: 85vh;
+    overflow-y: auto;
+    padding: 0 20px 24px;
+    -webkit-overflow-scrolling: touch;
+  }
+  .alloc-drawer.open { transform: translateY(0); }
+
+  .drawer-handle {
+    width: 40px;
+    height: 4px;
+    border-radius: 2px;
+    background: #444466;
+    margin: 12px auto 16px;
+  }
+
+  .drawer-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  .drawer-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 24px;
+    flex-shrink: 0;
+    box-shadow:
+      inset 0 3px 6px rgba(255,255,255,0.5),
+      inset 0 -3px 6px rgba(0,0,0,0.25),
+      0 4px 12px rgba(0,0,0,0.3);
+  }
+
+  .drawer-header-text { flex: 1; }
+
+  .drawer-env-name {
+    font-size: 18px;
+    font-weight: 600;
+    color: #f0f0f5;
+  }
+
+  .drawer-balance {
+    font-size: 13px;
+    color: #808098;
+    margin-top: 1px;
+  }
+
+  .drawer-close {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: #242438;
+    border: none;
+    color: #808098;
+    font-size: 18px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: background 0.15s;
+  }
+  .drawer-close:hover { background: #32324d; }
+
+  .drawer-section-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #808098;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 10px;
+  }
+
+  .spending-chart {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 20px;
+  }
+
+  .chart-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    padding: 4px 0;
+    border-radius: 6px;
+    transition: background 0.15s;
+  }
+  .chart-row:hover { background: rgba(255,255,255,0.03); }
+
+  .chart-month {
+    font-size: 12px;
+    color: #808098;
+    width: 28px;
+    text-align: right;
+    flex-shrink: 0;
+  }
+
+  .chart-bar-wrap {
+    flex: 1;
+    height: 20px;
+    background: #242438;
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .chart-bar-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .chart-amount {
+    font-size: 12px;
+    font-weight: 600;
+    color: #c0c0d0;
+    width: 48px;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    flex-shrink: 0;
+  }
+
+  .chart-chevron {
+    font-size: 14px;
+    color: #606080;
+    flex-shrink: 0;
+  }
+
+  .chart-divider {
+    border: none;
+    border-top: 1px dashed #32324d;
+    margin: 4px 0;
+  }
+
+  .chart-row.suggested .chart-month {
+    font-size: 11px;
+    font-weight: 600;
+    color: #4ade80;
+    width: 28px;
+  }
+
+  .chart-row.suggested .chart-bar-wrap {
+    border: 1px dashed rgba(74, 222, 128, 0.4);
+    background: transparent;
+  }
+
+  .chart-row.suggested .chart-bar-fill {
+    background: rgba(74, 222, 128, 0.35) !important;
+    opacity: 1 !important;
+  }
+
+  .chart-row.suggested .chart-amount {
+    color: #4ade80;
+    font-weight: 700;
+    font-size: 13px;
+  }
+
+  .drawer-controls {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    margin: 20px 0 16px;
+  }
+
+  .drawer-btn-round {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    border: none;
+    background: #242438;
+    color: #c0c0d0;
+    font-size: 22px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s, transform 0.1s;
+    flex-shrink: 0;
+  }
+  .drawer-btn-round:hover { background: #32324d; }
+  .drawer-btn-round:active { transform: scale(0.92); }
+  .drawer-btn-round:disabled { opacity: 0.3; cursor: default; }
+
+  .drawer-amount-input-wrap {
+    position: relative;
+    width: 120px;
+  }
+
+  .drawer-amount-prefix {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 20px;
+    font-weight: 600;
+    color: #606080;
+    pointer-events: none;
+  }
+
+  .drawer-amount-input {
+    width: 100%;
+    height: 52px;
+    background: #242438;
+    border: 2px solid #32324d;
+    border-radius: 10px;
+    color: #f0f0f5;
+    font-size: 26px;
+    font-weight: 700;
+    font-family: "Nunito", sans-serif;
+    text-align: center;
+    padding: 0 8px 0 28px;
+    outline: none;
+    font-variant-numeric: tabular-nums;
+    transition: border-color 0.2s;
+    -moz-appearance: textfield;
+  }
+  .drawer-amount-input::-webkit-outer-spin-button,
+  .drawer-amount-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+  .drawer-amount-input:focus { border-color: var(--drawer-color, #9836fe); }
+
+  .btn-use-suggested {
+    width: 100%;
+    height: 44px;
+    border-radius: 10px;
+    border: 1.5px solid #4ade80;
+    background: transparent;
+    color: #4ade80;
+    font-size: 14px;
+    font-weight: 600;
+    font-family: "Nunito", sans-serif;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .btn-use-suggested:hover { background: rgba(74, 222, 128, 0.08); }
+  .btn-use-suggested:disabled { opacity: 0.3; cursor: default; }
+
+  .btn-drawer-done {
+    width: 100%;
+    height: 52px;
+    border-radius: 12px;
+    border: none;
+    color: #fff;
+    font-size: 16px;
+    font-weight: 600;
+    font-family: "Nunito", sans-serif;
+    cursor: pointer;
+    margin-top: 12px;
+    transition: filter 0.15s;
+  }
+  .btn-drawer-done:hover { filter: brightness(1.1); }
+  .btn-drawer-done:active { transform: scale(0.98); }
+</style>
+</head>
+<body>
+
+<div class="ceremony">
+  <!-- Drag coin + burst (shared across steps) -->
+  <div class="drag-coin" id="dragCoin">$</div>
+  <div class="coin-burst" id="coinBurst"></div>
+
+  <!-- Progress Header -->
+  <div class="progress-header">
+    <div class="progress-dots">
+      <div class="progress-dot active" id="dot0"></div>
+      <div class="progress-dot" id="dot1"></div>
+      <div class="progress-dot" id="dot2"></div>
+      <div class="progress-dot" id="dot3"></div>
+    </div>
+  </div>
+
+  <!-- Step Container -->
+  <div class="step-container">
+
+    <!-- Step 1: Debrief -->
+    <div class="step active" id="step-debrief">
+      <div class="debrief-icon" id="debriefIcon"><i class="ph ph-wallet"></i></div>
+      <div class="debrief-title" id="debriefTitle">Time to Reload!</div>
+      <div class="debrief-subtitle" id="debriefSubtitle">Here's how your last round went...</div>
+      <div class="debrief-date" id="debriefDate">Jan 13 – Feb 12</div>
+
+      <div class="stats-row" id="statsRow">
+        <div class="stat-item">
+          <div class="stat-label">Budgeted</div>
+          <div class="stat-value">$2,450</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-label">Spent</div>
+          <div class="stat-value">$2,180</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-label">Leftover</div>
+          <div class="stat-value positive">$270</div>
+        </div>
+      </div>
+
+      <div class="highlights-label" id="highlightsLabel">Highlights</div>
+
+      <div class="insight-cards">
+        <div class="insight-card" id="card0" style="border-color: #4ade80;">
+          <div class="insight-icon" style="background: rgba(74,222,128,0.13); color: #4ade80;">
+            <i class="ph ph-check-circle"></i>
+          </div>
+          <div class="insight-content">
+            <div class="insight-header">
+              <div class="insight-title">Under Budget</div>
+              <div class="insight-value" style="color: #4ade80;">$48</div>
+            </div>
+            <div class="insight-subtitle">Groceries came in under target</div>
+          </div>
+        </div>
+        <div class="insight-card" id="card1" style="border-color: #fbbf24;">
+          <div class="insight-icon" style="background: rgba(251,191,36,0.13); color: #fbbf24;">
+            <i class="ph ph-trend-up"></i>
+          </div>
+          <div class="insight-content">
+            <div class="insight-header">
+              <div class="insight-title">Big Spender</div>
+              <div class="insight-value" style="color: #fbbf24;">$420</div>
+            </div>
+            <div class="insight-subtitle">Dining Out was your biggest category</div>
+          </div>
+        </div>
+        <div class="insight-card" id="card2" style="border-color: #60a5fa;">
+          <div class="insight-icon" style="background: rgba(96,165,250,0.13); color: #60a5fa;">
+            <i class="ph ph-arrows-clockwise"></i>
+          </div>
+          <div class="insight-content">
+            <div class="insight-header">
+              <div class="insight-title">Creature of Habit</div>
+              <div class="insight-value" style="color: #60a5fa;">12x</div>
+            </div>
+            <div class="insight-subtitle">12 transactions at the same place</div>
+          </div>
+        </div>
+      </div>
+
+      <button class="btn-primary btn-purple" id="btnDebrief" style="opacity:0; transform:translateY(10px);">
+        Let's Reload <i class="ph ph-arrow-right"></i>
+      </button>
+    </div>
+
+    <!-- Step 2: Leftovers -->
+    <div class="step" id="step-leftovers">
+      <div class="leftovers-title" id="leftTitle">You have leftovers!</div>
+      <div class="leftovers-subtitle" id="leftSubtitle">Some envelopes still have money. Drag to savings, add to income, or leave them.</div>
+
+      <div class="leftovers-section-label">Leftover balances</div>
+      <div class="leftovers-grid" id="leftoverGrid"></div>
+
+      <div class="leftovers-section-label">Drag to</div>
+      <div class="leftovers-grid" id="targetGrid"></div>
+
+      <div style="flex:1;"></div>
+      <button class="btn-primary btn-purple btn-full" id="btnLeftovers" style="margin-top:16px;">
+        Continue
+      </button>
+    </div>
+
+    <!-- Step 3: Allocation -->
+    <div class="step" id="step-allocation" style="padding: 16px 16px 0;">
+      <div class="alloc-title" id="allocTitle">Fill Your Envelopes</div>
+      <div class="alloc-subtitle" id="allocSubtitle">Tap each envelope to set your budget</div>
+
+      <div class="income-section" id="incomeSection">
+        <div class="income-tile" id="incomeTile">
+          <div class="alloc-tile" style="border: 2px solid #9836fe;">
+            <div class="alloc-tile-icon" style="background: #9575cd;">
+              <i class="ph-fill ph-bank"></i>
+            </div>
+            <div class="alloc-tile-name">Income</div>
+            <div class="alloc-tile-amount" id="incomeAmount">$3,450</div>
+          </div>
+          <div class="income-remaining" id="incomeRemaining">$3,450 left</div>
+        </div>
+        <div class="savings-overflow" id="savingsOverflow" style="display:none;">
+          <div class="alloc-tile" style="border: 2px solid #4ade80;">
+            <div class="alloc-tile-icon" style="background: #4ade80;">
+              <i class="ph-fill ph-piggy-bank"></i>
+            </div>
+            <div class="alloc-tile-name">Savings</div>
+            <div class="alloc-tile-amount" id="savingsOverflowAmount">$0</div>
+          </div>
+          <div class="savings-overflow-label" id="savingsOverflowLabel">$0 from savings</div>
+        </div>
+      </div>
+
+      <div class="progress-bar-wrap" id="allocProgress">
+        <div class="progress-bar-fill" id="allocProgressFill" style="width: 0%;"></div>
+      </div>
+
+      <div class="quick-actions" id="quickActions">
+        <button class="btn-fill-all" id="btnFillAll">Fill All</button>
+        <button class="btn-clear" id="btnClear">
+          <i class="ph ph-eraser" style="font-size:16px;"></i> Clear
+        </button>
+      </div>
+
+      <div class="alloc-section-label" id="allocLabel">Tap to allocate</div>
+      <div class="alloc-grid" id="allocGrid"></div>
+
+      <div style="flex:1;"></div>
+      <div class="bottom-action">
+        <button class="btn-primary btn-green btn-full" id="btnComplete">
+          Complete Budget ($0)
+        </button>
+      </div>
+    </div>
+
+    <!-- Step 4: Complete -->
+    <div class="step" id="step-complete" style="justify-content: center;">
+      <div class="complete-icon" id="completeIcon"><i class="ph ph-check"></i></div>
+      <div class="complete-title" id="completeTitle">Budget Complete!</div>
+      <div class="complete-summary" id="completeSummary">You allocated $3,450 across 7 envelopes</div>
+
+      <div class="complete-info-box" id="completeInfoBox">
+        <div class="complete-days">30 days remaining</div>
+        <div class="complete-next">Next budget: Thursday, March 12</div>
+      </div>
+
+      <button class="complete-btn btn-green" id="btnFinish">Start Spending</button>
+    </div>
+  </div>
+</div>
+
+<!-- Allocation Drawer -->
+<div class="drawer-backdrop" id="drawerBackdrop"></div>
+<div class="alloc-drawer" id="allocDrawer">
+  <div class="drawer-handle"></div>
+  <div class="drawer-header">
+    <div class="drawer-icon" id="drawerIcon"><i id="drawerIconI"></i></div>
+    <div class="drawer-header-text">
+      <div class="drawer-env-name" id="drawerName"></div>
+      <div class="drawer-balance" id="drawerBalance"></div>
+    </div>
+    <button class="drawer-close" id="drawerClose"><i class="ph ph-x"></i></button>
+  </div>
+
+  <div class="drawer-section-label">Spending History</div>
+  <div class="spending-chart" id="drawerChart"></div>
+
+  <div class="drawer-controls">
+    <button class="drawer-btn-round" id="drawerMinus"><i class="ph ph-minus" style="font-size:22px;"></i></button>
+    <div class="drawer-amount-input-wrap">
+      <span class="drawer-amount-prefix">$</span>
+      <input class="drawer-amount-input" id="drawerInput" type="text" inputmode="numeric" placeholder="0">
+    </div>
+    <button class="drawer-btn-round" id="drawerPlus"><i class="ph ph-plus" style="font-size:22px;"></i></button>
+  </div>
+
+  <button class="btn-use-suggested" id="drawerSuggested"></button>
+  <button class="btn-drawer-done" id="drawerDone">Done</button>
+</div>
+
+<script>
+// ── Data ──
+const INCOME = 345000; // cents ($3,450)
+const envelopesDef = [
+  { icon: 'ph-fill ph-credit-card', name: 'Recurring',   color: '#5ec98a', balance: 85000, savings: false },
+  { icon: 'ph-fill ph-car',         name: 'Transport',   color: '#b070f0', balance: 12000, savings: false },
+  { icon: 'ph-fill ph-user',        name: 'Appearance',  color: '#f0c050', balance: 0,     savings: false },
+  { icon: 'ph-fill ph-house',       name: 'Household',   color: '#5c9ee8', balance: 3400,  savings: false },
+  { icon: 'ph-fill ph-fork-knife',  name: 'Dining Out',  color: '#e078a8', balance: 4800,  savings: false },
+  { icon: 'ph-fill ph-shopping-cart',name: 'Groceries',   color: '#48c8a0', balance: 6200,  savings: false },
+  { icon: 'ph-fill ph-airplane',    name: 'Travel',      color: '#e8a060', balance: 0,     savings: false },
+  { icon: 'ph-fill ph-piggy-bank',  name: 'Savings',     color: '#4ade80', balance: 350000, savings: true },
+];
+
+const leftoversDef = [
+  { icon: 'ph-fill ph-fork-knife',  name: 'Dining Out',  color: '#e078a8', balance: 4800 },
+  { icon: 'ph-fill ph-shopping-cart',name: 'Groceries',   color: '#48c8a0', balance: 6200 },
+  { icon: 'ph-fill ph-car',         name: 'Transport',   color: '#b070f0', balance: 12000 },
+  { icon: 'ph-fill ph-house',       name: 'Household',   color: '#5c9ee8', balance: 3400 },
+];
+
+const targetsDef = [
+  { icon: 'ph-fill ph-bank', name: 'Income', color: '#9575cd', balance: INCOME },
+  { icon: 'ph-fill ph-piggy-bank', name: 'Savings', color: '#4ade80', balance: 350000 },
+];
+
+// Fake spending history per envelope (cents)
+const spendingHistory = [
+  /* Recurring */   [{ month: 'Dec', spent: 118000 }, { month: 'Jan', spent: 121500 }, { month: 'Feb', spent: 115000 }],
+  /* Transport */   [{ month: 'Dec', spent: 28000 },  { month: 'Jan', spent: 35500 },  { month: 'Feb', spent: 32000 }],
+  /* Appearance */  [{ month: 'Dec', spent: 15000 },  { month: 'Jan', spent: 22000 },  { month: 'Feb', spent: 18000 }],
+  /* Household */   [{ month: 'Dec', spent: 135000 }, { month: 'Jan', spent: 148000 }, { month: 'Feb', spent: 142000 }],
+  /* Dining Out */  [{ month: 'Dec', spent: 38000 },  { month: 'Jan', spent: 42000 },  { month: 'Feb', spent: 45000 }],
+  /* Groceries */   [{ month: 'Dec', spent: 52000 },  { month: 'Jan', spent: 58000 },  { month: 'Feb', spent: 55000 }],
+  /* Travel */      [{ month: 'Jan', spent: 25000 },  { month: 'Feb', spent: 18000 }],
+  /* Savings */     [{ month: 'Dec', spent: 60000 },  { month: 'Jan', spent: 75000 },  { month: 'Feb', spent: 70000 }],
+];
+
+// Compute suggested as average of spending history
+envelopesDef.forEach((env, i) => {
+  const history = spendingHistory[i] || [];
+  if (history.length > 0) {
+    const total = history.reduce((sum, h) => sum + h.spent, 0);
+    env.suggested = Math.round(total / history.length / 100) * 100; // round to nearest dollar
+  } else {
+    env.suggested = 0;
+  }
+});
+
+// ── State ──
+let currentStep = 0;
+const steps = ['debrief', 'leftovers', 'allocation', 'complete'];
+let allocations = {};
+envelopesDef.forEach((_, i) => allocations[i] = 0);
+
+// ── Helpers ──
+function fmt(cents) {
+  const abs = Math.abs(cents);
+  const sign = cents < 0 ? '-' : '';
+  const d = abs / 100;
+  if (d >= 1000) return `${sign}$${(d/1000).toFixed(1)}k`;
+  return `${sign}$${d % 1 === 0 ? d.toFixed(0) : d.toFixed(2)}`;
+}
+
+function fmtDollars(cents) {
+  return `$${(Math.abs(cents) / 100).toLocaleString('en-NZ', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+}
+
+// ── Step navigation ──
+function goToStep(idx) {
+  const prevEl = document.getElementById(`step-${steps[currentStep]}`);
+  const nextEl = document.getElementById(`step-${steps[idx]}`);
+
+  prevEl.style.transition = 'opacity 0.15s ease, transform 0.15s ease';
+  prevEl.style.opacity = '0';
+  prevEl.style.transform = 'translateX(-20px)';
+
+  setTimeout(() => {
+    prevEl.classList.remove('active');
+    prevEl.style.transition = 'none';
+    prevEl.style.transform = 'translateX(40px)';
+
+    currentStep = idx;
+    updateProgress();
+
+    nextEl.style.transition = 'none';
+    nextEl.style.opacity = '0';
+    nextEl.style.transform = 'translateX(40px)';
+    nextEl.classList.add('active');
+
+    void nextEl.offsetWidth;
+
+    nextEl.style.transition = 'opacity 0.25s ease-out, transform 0.25s ease-out';
+    nextEl.style.opacity = '1';
+    nextEl.style.transform = 'translateX(0)';
+
+    setTimeout(() => animateStep(idx), 100);
+  }, 150);
+}
+
+function updateProgress() {
+  for (let i = 0; i < 4; i++) {
+    document.getElementById(`dot${i}`).classList.toggle('active', i <= currentStep);
+  }
+}
+
+// ── Step 1: Debrief animations ──
+function animateDebrief() {
+  const icon = document.getElementById('debriefIcon');
+  const title = document.getElementById('debriefTitle');
+  const subtitle = document.getElementById('debriefSubtitle');
+  const date = document.getElementById('debriefDate');
+  const stats = document.getElementById('statsRow');
+  const highlights = document.getElementById('highlightsLabel');
+  const cards = [document.getElementById('card0'), document.getElementById('card1'), document.getElementById('card2')];
+  const btn = document.getElementById('btnDebrief');
+
+  let d = 0;
+  setTimeout(() => { icon.style.transition = 'opacity 0.5s cubic-bezier(0.34, 1.56, 0.64, 1), transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)'; icon.style.opacity = '1'; icon.style.transform = 'scale(1)'; }, d += 100);
+  setTimeout(() => { title.style.transition = 'opacity 0.4s ease-out, transform 0.4s ease-out'; title.style.opacity = '1'; title.style.transform = 'translateY(0)'; }, d += 300);
+  setTimeout(() => { subtitle.style.transition = 'opacity 0.3s ease-out'; subtitle.style.opacity = '1'; }, d += 200);
+  setTimeout(() => { date.style.transition = 'opacity 0.3s ease-out'; date.style.opacity = '1'; }, d += 200);
+  setTimeout(() => { stats.style.transition = 'opacity 0.3s ease-out, transform 0.3s ease-out'; stats.style.opacity = '1'; stats.style.transform = 'translateY(0)'; }, d += 200);
+  setTimeout(() => { highlights.style.transition = 'opacity 0.3s ease-out, transform 0.3s ease-out'; highlights.style.opacity = '1'; highlights.style.transform = 'translateY(0)'; }, d += 200);
+  cards.forEach((card, i) => {
+    setTimeout(() => { card.style.transition = 'opacity 0.5s ease-out, transform 0.5s ease-out'; card.style.opacity = '1'; card.style.transform = 'translateX(0)'; }, d += 300);
+  });
+  setTimeout(() => { btn.style.transition = 'opacity 0.3s ease-out, transform 0.3s ease-out'; btn.style.opacity = '1'; btn.style.transform = 'translateY(0)'; }, d += 400);
+}
+
+// ── Step 2: Leftovers ──
+function buildLeftovers() {
+  const grid = document.getElementById('leftoverGrid');
+  grid.innerHTML = '';
+  leftoversDef.forEach((env, i) => {
+    const tile = document.createElement('div');
+    tile.className = 'leftover-tile';
+    tile.dataset.index = i;
+    const floatDur = (4.7 + Math.random() * 0.6).toFixed(1);
+    const floatDelay = (i * 0.4).toFixed(1);
+    tile.innerHTML = `
+      <div class="leftover-tile-icon" style="background:${env.color}; animation: gemFloat ${floatDur}s ease-in-out infinite; animation-delay: ${floatDelay}s;"><i class="${env.icon}"></i></div>
+      <div class="leftover-tile-name">${env.name}</div>
+      <div class="leftover-tile-amount">${fmt(env.balance)}</div>
+    `;
+    grid.appendChild(tile);
+  });
+
+  const tgrid = document.getElementById('targetGrid');
+  tgrid.innerHTML = '';
+  targetsDef.forEach((t, i) => {
+    const tile = document.createElement('div');
+    tile.className = 'target-tile';
+    tile.dataset.target = i;
+    const floatDur = (5.0 + Math.random() * 0.4).toFixed(1);
+    const floatDelay = (i * 0.5 + 2.0).toFixed(1);
+    tile.innerHTML = `
+      <div class="leftover-tile-icon" style="background:${t.color}; animation: gemFloat ${floatDur}s ease-in-out infinite; animation-delay: ${floatDelay}s;"><i class="${t.icon}"></i></div>
+      <div class="leftover-tile-name">${t.name}</div>
+      <div class="leftover-tile-amount">${fmtDollars(t.balance)}</div>
+    `;
+    tgrid.appendChild(tile);
+  });
+
+  // Start periodic gem shine and flip effects
+  startGemEffects();
+}
+
+function animateLeftovers() {
+  const title = document.getElementById('leftTitle');
+  const subtitle = document.getElementById('leftSubtitle');
+  setTimeout(() => { title.style.transition = 'opacity 0.4s, transform 0.4s'; title.style.opacity = '1'; title.style.transform = 'translateY(0)'; }, 100);
+  setTimeout(() => { subtitle.style.transition = 'opacity 0.3s'; subtitle.style.opacity = '1'; }, 300);
+}
+
+// ── Gem shine & flip effects ──
+function startGemEffects() {
+  const allIcons = document.querySelectorAll('.leftover-tile-icon, .alloc-tile-icon');
+  function triggerShine() {
+    const icons = document.querySelectorAll('.leftover-tile-icon, .alloc-tile-icon');
+    if (icons.length === 0) return;
+    const gem = icons[Math.floor(Math.random() * icons.length)];
+    gem.classList.remove('shining');
+    void gem.offsetWidth;
+    gem.classList.add('shining');
+    setTimeout(() => gem.classList.remove('shining'), 600);
+    setTimeout(triggerShine, 3000 + Math.random() * 6000);
+  }
+  setTimeout(triggerShine, 1000 + Math.random() * 2000);
+}
+
+// ── Step 2: Leftover Drag System ──
+let leftDragState = null;
+let leftDropTarget = null;
+let leftFloatRAF = null;
+let leftCoinVx = 0, leftCoinVy = 0, leftCoinX = 0, leftCoinY = 0, leftCoinRot = 0;
+let leftTrailInterval = null;
+let leftTransferred = new Set();
+
+function getLeftoverDropTarget(x, y) {
+  const targets = document.querySelectorAll('#targetGrid .target-tile');
+  for (const t of targets) {
+    const r = t.getBoundingClientRect();
+    if (x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) return t;
+  }
+  return null;
+}
+
+function startLeftOrbit() {
+  if (leftFloatRAF) return;
+  leftCoinX = leftDragState.pendingFingerX;
+  leftCoinY = leftDragState.pendingFingerY;
+  const a = Math.random() * Math.PI * 2;
+  leftCoinVx = Math.cos(a) * 3;
+  leftCoinVy = Math.sin(a) * 3;
+
+  function tick() {
+    if (!leftDragState || !leftDragState.coinPopped || leftDragState.coinPhase !== 'free') {
+      leftFloatRAF = null; return;
+    }
+    const tx = leftDragState.pendingFingerX, ty = leftDragState.pendingFingerY;
+    const dx = tx - leftCoinX, dy = ty - leftCoinY;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    if (dist > 1) {
+      const pull = FLOAT_GRAVITY * Math.min(dist / 20, 1.5);
+      leftCoinVx += (dx / dist) * pull;
+      leftCoinVy += (dy / dist) * pull;
+    }
+    leftCoinVx += (Math.random() - 0.5) * FLOAT_WANDER;
+    leftCoinVy += (Math.random() - 0.5) * FLOAT_WANDER;
+    leftCoinVx *= FLOAT_DAMPING;
+    leftCoinVy *= FLOAT_DAMPING;
+    leftCoinX += leftCoinVx;
+    leftCoinY += leftCoinVy;
+    if (dist > FLOAT_MAX_DIST) {
+      const pb = (dist - FLOAT_MAX_DIST) * 0.1;
+      leftCoinX -= (leftCoinX - tx) / dist * pb;
+      leftCoinY -= (leftCoinY - ty) / dist * pb;
+    }
+    const speed = Math.sqrt(leftCoinVx ** 2 + leftCoinVy ** 2);
+    leftCoinRot += speed * 3;
+    const wobble = 0.7 * (1 + Math.sin(leftCoinRot * 0.1) * 0.08);
+    dragCoinEl.style.left = `${leftCoinX - 20}px`;
+    dragCoinEl.style.top = `${leftCoinY - 20}px`;
+    dragCoinEl.style.transform = `scale(${wobble}) rotate(${leftCoinRot}deg)`;
+    leftFloatRAF = requestAnimationFrame(tick);
+  }
+  leftFloatRAF = requestAnimationFrame(tick);
+}
+
+function stopLeftOrbit() {
+  if (leftFloatRAF) { cancelAnimationFrame(leftFloatRAF); leftFloatRAF = null; }
+  leftCoinVx = leftCoinVy = 0;
+}
+
+function startLeftTrail() {
+  if (leftTrailInterval) return;
+  leftTrailInterval = setInterval(() => {
+    if (!leftDragState || !leftDragState.coinPopped) return;
+    const cx = parseFloat(dragCoinEl.style.left) + 20;
+    const cy = parseFloat(dragCoinEl.style.top) + 20;
+    if (isNaN(cx) || isNaN(cy)) return;
+    for (let i = 0; i < 3; i++) spawnTrailSpark(cx, cy);
+  }, 20);
+}
+
+function stopLeftTrail() {
+  clearInterval(leftTrailInterval); leftTrailInterval = null;
+}
+
+function transferLeftoverToTarget(sourceTile, targetTile) {
+  const srcIdx = parseInt(sourceTile.dataset.index);
+  const env = leftoversDef[srcIdx];
+  const amount = env.balance;
+
+  const GRAVITY = 0.08, EMIT_SPEED = 2.0, EMIT_STAGGER = 70, ABSORB_RADIUS = 45, DRAG_C = 0.98, COIN_R = 16;
+  const sr = sourceTile.getBoundingClientRect();
+  const tr = targetTile.getBoundingClientRect();
+  const sx = sr.left + sr.width / 2, sy = sr.top + sr.height / 2;
+  const tx = tr.left + tr.width / 2, ty = tr.top + tr.height / 2;
+  const COIN_COUNT = Math.max(3, Math.min(8, Math.round(amount / 3000)));
+
+  sourceTile.animate([
+    { transform: 'scale(1)' },
+    { transform: 'scale(0.88)', offset: 0.3 },
+    { transform: 'scale(0.92)', offset: 0.7 },
+    { transform: 'scale(1)' },
+  ], { duration: 1200, easing: 'ease-in-out' });
+
+  if (navigator.vibrate) navigator.vibrate(20);
+  spawnAmountBadge(sourceTile, `-${fmt(amount)}`, 'minus');
+  spawnAmountBadge(targetTile, `+${fmt(amount)}`, 'plus');
+
+  let landed = 0;
+  const particles = [];
+  for (let i = 0; i < COIN_COUNT; i++) {
+    const coin = document.createElement('div');
+    coin.className = 'transfer-coin'; coin.textContent = '$'; coin.style.opacity = '0';
+    document.body.appendChild(coin);
+    const angle = (Math.PI * 2 / COIN_COUNT) * i + (Math.random() - 0.5) * 0.6;
+    const speed = EMIT_SPEED * (0.8 + Math.random() * 0.4);
+    particles.push({ el: coin, x: sx, y: sy, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed, scale: 0, rotation: 0, rotSpeed: (Math.random() - 0.5) * 3, alive: false, launched: false, trailFrame: 0 });
+  }
+  particles.forEach((p, i) => { setTimeout(() => { p.alive = true; p.launched = true; }, i * EMIT_STAGGER); });
+
+  function tick() {
+    let allDone = true;
+    for (const p of particles) {
+      if (!p.launched) { allDone = false; continue; }
+      if (!p.alive) continue;
+      allDone = false;
+      if (p.scale < 1) { p.scale = Math.min(1, p.scale + 0.08); p.el.style.opacity = '1'; }
+      const dx = tx - p.x, dy = ty - p.y;
+      const distSq = dx * dx + dy * dy, dist = Math.sqrt(distSq);
+      const force = GRAVITY * Math.max(1, 8000 / distSq);
+      p.vx += (dx / dist) * force + (dx / dist) * 0.25;
+      p.vy += (dy / dist) * force + (dy / dist) * 0.25;
+      p.vx *= DRAG_C; p.vy *= DRAG_C;
+      p.x += p.vx; p.y += p.vy; p.rotation += p.rotSpeed;
+      const vw = window.innerWidth, vh = window.innerHeight;
+      if (p.x < COIN_R) { p.x = COIN_R; p.vx = Math.abs(p.vx) * 0.6; }
+      if (p.x > vw - COIN_R) { p.x = vw - COIN_R; p.vx = -Math.abs(p.vx) * 0.6; }
+      if (p.y < COIN_R) { p.y = COIN_R; p.vy = Math.abs(p.vy) * 0.6; }
+      if (p.y > vh - COIN_R) { p.y = vh - COIN_R; p.vy = -Math.abs(p.vy) * 0.6; }
+      const aScale = Math.min(1, dist / 60);
+      p.el.style.left = `${p.x - 14}px`; p.el.style.top = `${p.y - 14}px`;
+      p.el.style.transform = `scale(${p.scale * (0.3 + aScale * 0.7)}) rotate(${p.rotation}deg)`;
+      p.el.style.opacity = Math.min(1, dist / 20);
+      p.trailFrame++;
+      if (p.trailFrame % 3 === 0 && Math.sqrt(p.vx ** 2 + p.vy ** 2) > 2 && dist > 50) spawnTrailSpark(p.x, p.y);
+      if (dist < ABSORB_RADIUS) {
+        p.alive = false; p.el.remove(); landed++;
+        targetTile.animate([{ transform: 'scale(1)' }, { transform: `scale(${1.04 + (landed / COIN_COUNT) * 0.08})` }, { transform: 'scale(1)' }], { duration: 200, easing: 'cubic-bezier(0.175,0.885,0.32,1.275)' });
+        if (navigator.vibrate) navigator.vibrate(8);
+        if (landed === COIN_COUNT) {
+          leftTransferred.add(srcIdx);
+          sourceTile.classList.add('transferred');
+          // Update target balance
+          const targetIdx = parseInt(targetTile.dataset.target);
+          targetsDef[targetIdx].balance += amount;
+          targetTile.querySelector('.leftover-tile-amount').textContent = fmtDollars(targetsDef[targetIdx].balance);
+          // Also zero out source display
+          sourceTile.querySelector('.leftover-tile-amount').textContent = '$0';
+          targetTile.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.15)' }, { transform: 'scale(0.96)' }, { transform: 'scale(1.04)' }, { transform: 'scale(1)' }], { duration: 350, easing: 'linear' });
+          if (navigator.vibrate) navigator.vibrate(25);
+        }
+      }
+    }
+    if (!allDone) requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+}
+
+function onLeftoverDragDown(e) {
+  const tile = e.target.closest('.leftover-tile');
+  if (!tile || leftTransferred.has(parseInt(tile.dataset.index))) return;
+  e.preventDefault();
+  const clientX = e.clientX ?? e.touches?.[0]?.clientX;
+  const clientY = e.clientY ?? e.touches?.[0]?.clientY;
+  const rect = tile.getBoundingClientRect();
+  leftDragState = {
+    startX: clientX, startY: clientY,
+    boxCenterX: rect.left + rect.width / 2,
+    boxCenterY: rect.top + rect.height / 2,
+    coinPopped: false, coinPhase: null,
+    pendingFingerX: clientX, pendingFingerY: clientY,
+    lastDist: 0, tileEl: tile,
+  };
+  lastCreakTime = 0;
+  startLeftTrail();
+}
+
+function onLeftoverDragMove(e) {
+  if (!leftDragState) return;
+  e.preventDefault();
+  const clientX = e.clientX ?? e.touches?.[0]?.clientX ?? e.changedTouches?.[0]?.clientX;
+  const clientY = e.clientY ?? e.touches?.[0]?.clientY ?? e.changedTouches?.[0]?.clientY;
+
+  const dx = clientX - leftDragState.startX;
+  const dy = clientY - leftDragState.startY;
+  const dist = Math.sqrt(dx * dx + dy * dy);
+  const tile = leftDragState.tileEl;
+
+  if (!leftDragState.coinPopped) {
+    const factor = DRAG_LIMIT * (1 - Math.exp(-dist / (DRAG_LIMIT * 4)));
+    const angle = Math.atan2(dy, dx);
+    const moveX = Math.cos(angle) * factor;
+    const moveY = Math.sin(angle) * factor;
+    const tension = Math.min(dist / POP_THRESHOLD, 1);
+    const stretch = 1 + tension * 0.25;
+    const squash = 1 - tension * 0.12;
+    const deg = angle * (180 / Math.PI);
+    tile.style.transform = `translate(${moveX}px, ${moveY}px) rotate(${deg}deg) scale(${stretch}, ${squash}) rotate(${-deg}deg)`;
+
+    const creakT = Math.max(0, (dist - POP_THRESHOLD * 0.2)) / (POP_THRESHOLD * 0.8);
+    if (creakT > 0 && creakT < 1) doCreak(Math.min(creakT, 1));
+
+    if (dist >= POP_THRESHOLD) {
+      leftDragState.coinPopped = true;
+      const ct = tile.style.transform;
+      const mx = Math.cos(angle) * factor, my = Math.sin(angle) * factor;
+      tile.style.transition = 'none';
+      const snap = tile.animate([
+        { transform: ct },
+        { transform: `translate(${-mx*2}px, ${-my*2}px) scale(0.85)`, offset: 0.12 },
+        { transform: `translate(${mx}px, ${my}px) scale(1.1)`, offset: 0.28 },
+        { transform: `translate(${-mx*0.4}px, ${-my*0.4}px) scale(0.93)`, offset: 0.44 },
+        { transform: `translate(${mx*0.15}px, ${my*0.15}px) scale(1.03)`, offset: 0.60 },
+        { transform: 'translate(0,0) scale(1)' },
+      ], { duration: 700, easing: 'linear', fill: 'forwards' });
+      snap.onfinish = () => { snap.cancel(); tile.style.transform = 'translate(0,0) scale(1)'; };
+
+      const bx = leftDragState.boxCenterX, by = leftDragState.boxCenterY;
+      leftDragState.coinPhase = 'zipping';
+      leftDragState.pendingFingerX = clientX;
+      leftDragState.pendingFingerY = clientY;
+
+      dragCoinEl.style.transition = 'none';
+      dragCoinEl.style.left = `${bx - 20}px`;
+      dragCoinEl.style.top = `${by - 20}px`;
+      dragCoinEl.style.opacity = '1';
+      dragCoinEl.style.transform = 'scale(0.7)';
+
+      let zx = bx, zy = by;
+      function zipTick() {
+        if (!leftDragState || leftDragState.coinPhase !== 'zipping') return;
+        const ttx = leftDragState.pendingFingerX, tty = leftDragState.pendingFingerY;
+        zx += (ttx - zx) * 0.35; zy += (tty - zy) * 0.35;
+        dragCoinEl.style.left = `${zx - 20}px`; dragCoinEl.style.top = `${zy - 20}px`;
+        if (Math.sqrt((ttx - zx) ** 2 + (tty - zy) ** 2) < 2) {
+          dragCoinEl.style.left = `${ttx - 20}px`; dragCoinEl.style.top = `${tty - 20}px`;
+          leftDragState.coinPhase = 'free';
+          startLeftOrbit();
+          return;
+        }
+        requestAnimationFrame(zipTick);
+      }
+      requestAnimationFrame(zipTick);
+
+      spawnBurst(bx, by);
+      if (navigator.vibrate) navigator.vibrate([0, 10, 40]);
+    }
+  } else {
+    leftDragState.pendingFingerX = clientX;
+    leftDragState.pendingFingerY = clientY;
+
+    const hit = getLeftoverDropTarget(clientX, clientY);
+    if (hit && hit !== leftDropTarget) {
+      if (leftDropTarget) leftDropTarget.classList.remove('drop-highlight');
+      hit.classList.add('drop-highlight');
+      leftDropTarget = hit;
+      if (navigator.vibrate) navigator.vibrate(8);
+    } else if (!hit && leftDropTarget) {
+      leftDropTarget.classList.remove('drop-highlight');
+      leftDropTarget = null;
+    }
+
+    if (leftDragState.coinPhase === 'free') {
+      dragCoinEl.style.transition = 'none';
+      dragCoinEl.style.opacity = '1';
+    }
+  }
+}
+
+function onLeftoverDragUp(e) {
+  if (!leftDragState) return;
+  const wasPopped = leftDragState.coinPopped;
+  const target = leftDropTarget;
+  const tile = leftDragState.tileEl;
+
+  leftDragState.coinPhase = 'dead';
+  stopLeftOrbit();
+  stopLeftTrail();
+
+  tile.style.transition = 'transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+  tile.style.transform = 'translate(0, 0) scale(1)';
+
+  dragCoinEl.removeAttribute('style');
+  dragCoinEl.style.opacity = '0';
+
+  if (wasPopped && target) {
+    target.classList.remove('drop-highlight');
+    transferLeftoverToTarget(tile, target);
+  }
+  if (target) target.classList.remove('drop-highlight');
+
+  leftDragState = null;
+  leftDropTarget = null;
+}
+
+// Attach leftover drag handlers
+const leftoverGrid = document.getElementById('leftoverGrid');
+leftoverGrid.addEventListener('pointerdown', onLeftoverDragDown);
+leftoverGrid.addEventListener('touchstart', (e) => {
+  const tile = e.target.closest('.leftover-tile');
+  if (!tile || leftTransferred.has(parseInt(tile.dataset.index))) return;
+  onLeftoverDragDown(e);
+}, { passive: false });
+
+window.addEventListener('pointermove', (e) => { if (leftDragState) onLeftoverDragMove(e); });
+window.addEventListener('touchmove', (e) => { if (leftDragState) onLeftoverDragMove(e); }, { passive: false });
+window.addEventListener('pointerup', (e) => { if (leftDragState) onLeftoverDragUp(e); });
+window.addEventListener('touchend', (e) => { if (leftDragState) onLeftoverDragUp(e); }, { passive: false });
+window.addEventListener('pointercancel', (e) => { if (leftDragState) onLeftoverDragUp(e); });
+window.addEventListener('touchcancel', (e) => { if (leftDragState) onLeftoverDragUp(e); }, { passive: false });
+
+// ── Step 3: Allocation ──
+function buildAllocation() {
+  const grid = document.getElementById('allocGrid');
+  grid.innerHTML = '';
+  envelopesDef.forEach((env, i) => {
+    const tile = document.createElement('div');
+    tile.className = 'alloc-tile';
+    tile.dataset.index = i;
+    const balance = env.balance + allocations[i];
+    const suggested = env.suggested;
+    const fillPct = Math.min(100, (balance / suggested) * 100);
+    const needsMore = suggested > balance;
+    tile.innerHTML = `
+      ${env.savings ? '<div class="savings-tag">Savings</div>' : ''}
+      <div class="alloc-tile-icon" style="background:${env.color}"><i class="${env.icon}"></i></div>
+      <div class="alloc-tile-name">${env.name}</div>
+      <div class="alloc-tile-amount">
+        ${fmt(balance)}${allocations[i] > 0 ? `<span class="alloc-delta">+${fmt(allocations[i])}</span>` : ''}
+      </div>
+      <div class="alloc-tile-suggested">${needsMore ? `${fmtDollars(suggested)} suggested` : ''}</div>
+    `;
+    // Click to open allocation drawer
+    tile.addEventListener('click', () => openAllocDrawer(i));
+    grid.appendChild(tile);
+  });
+}
+
+// Savings envelope index (for overflow)
+const SAVINGS_IDX = envelopesDef.findIndex(e => e.savings);
+const SAVINGS_BALANCE = envelopesDef[SAVINGS_IDX].balance;
+
+function updateAllocationUI() {
+  const total = Object.values(allocations).reduce((s, v) => s + v, 0);
+  const remaining = INCOME - total;
+  const overBudget = remaining < 0;
+  const fromSavings = overBudget ? Math.abs(remaining) : 0;
+  const pct = Math.min(100, (total / INCOME) * 100);
+
+  // Income display
+  document.getElementById('incomeAmount').textContent = fmtDollars(INCOME);
+  if (overBudget) {
+    document.getElementById('incomeRemaining').textContent = 'Over budget';
+    document.getElementById('incomeRemaining').style.color = '#fb923c';
+  } else if (remaining === 0) {
+    document.getElementById('incomeRemaining').textContent = 'Fully allocated';
+    document.getElementById('incomeRemaining').style.color = '#a0a0c0';
+  } else {
+    document.getElementById('incomeRemaining').textContent = `${fmtDollars(remaining)} left`;
+    document.getElementById('incomeRemaining').style.color = '#4ade80';
+  }
+
+  // Progress bar
+  const progressWrap = document.getElementById('allocProgress');
+  const progressFill = document.getElementById('allocProgressFill');
+  if (total > 0) progressWrap.classList.add('visible');
+  else progressWrap.classList.remove('visible');
+  progressFill.style.width = `${pct}%`;
+  if (overBudget) {
+    progressFill.style.background = '#fb923c';
+  } else if (pct >= 90) {
+    progressFill.style.background = '#4ade80';
+  } else {
+    progressFill.style.background = '#9836fe';
+  }
+
+  // Savings overflow
+  const overflowEl = document.getElementById('savingsOverflow');
+  if (overBudget && fromSavings <= SAVINGS_BALANCE) {
+    overflowEl.style.display = '';
+    requestAnimationFrame(() => overflowEl.classList.add('visible'));
+    document.getElementById('savingsOverflowAmount').textContent = fmtDollars(SAVINGS_BALANCE);
+    document.getElementById('savingsOverflowLabel').textContent = `${fmtDollars(fromSavings)} from savings`;
+    document.getElementById('savingsOverflowLabel').style.color = '#fb923c';
+  } else if (overBudget && fromSavings > SAVINGS_BALANCE) {
+    overflowEl.style.display = '';
+    requestAnimationFrame(() => overflowEl.classList.add('visible'));
+    document.getElementById('savingsOverflowAmount').textContent = fmtDollars(SAVINGS_BALANCE);
+    document.getElementById('savingsOverflowLabel').textContent = `Not enough!`;
+    document.getElementById('savingsOverflowLabel').style.color = '#f87171';
+  } else {
+    overflowEl.classList.remove('visible');
+    setTimeout(() => { if (!overflowEl.classList.contains('visible')) overflowEl.style.display = 'none'; }, 300);
+  }
+
+  const envCount = Object.values(allocations).filter(v => v > 0).length;
+  const canComplete = total > 0 && fromSavings <= SAVINGS_BALANCE;
+  const btnC = document.getElementById('btnComplete');
+  btnC.textContent = `Complete Budget (${fmtDollars(total)})`;
+  btnC.style.background = canComplete ? 'linear-gradient(135deg, #4ade80, #059669)' : overBudget ? '#fb923c' : '#32324d';
+  btnC.style.cursor = canComplete ? 'pointer' : 'default';
+  btnC.disabled = !canComplete;
+  btnC.style.opacity = canComplete ? '1' : '0.5';
+
+  document.getElementById('completeSummary').textContent = `You allocated ${fmtDollars(total)} across ${envCount} envelopes`;
+
+  buildAllocation();
+}
+
+// ── Allocation Drawer ──
+let drawerEnvelopeIdx = null;
+let drawerSuggestedAlloc = 0; // fixed suggested allocation (cents) set on drawer open
+
+function openAllocDrawer(idx) {
+  drawerEnvelopeIdx = idx;
+  const env = envelopesDef[idx];
+  const history = spendingHistory[idx] || [];
+  const balance = env.balance + allocations[idx];
+
+  // Set drawer color
+  const drawer = document.getElementById('allocDrawer');
+  drawer.style.setProperty('--drawer-color', env.color);
+
+  // Header
+  document.getElementById('drawerIcon').style.background = env.color;
+  document.getElementById('drawerIconI').className = env.icon;
+  document.getElementById('drawerName').textContent = env.name;
+  document.getElementById('drawerBalance').textContent = `Balance: ${fmtDollars(balance)}`;
+
+  // Spending chart
+  const chart = document.getElementById('drawerChart');
+  chart.innerHTML = '';
+  const maxSpend = Math.max(env.suggested, ...history.map(h => h.spent));
+
+  history.forEach((h, i) => {
+    const pct = maxSpend > 0 ? (h.spent / maxSpend) * 100 : 0;
+    const opacity = 0.5 + ((i / Math.max(1, history.length - 1)) * 0.45);
+    const row = document.createElement('div');
+    row.className = 'chart-row';
+    row.innerHTML = `
+      <span class="chart-month">${h.month}</span>
+      <div class="chart-bar-wrap"><div class="chart-bar-fill" style="width:0%;background:${env.color};opacity:${opacity}"></div></div>
+      <span class="chart-amount">${fmtDollars(h.spent)}</span>
+      <i class="ph ph-caret-right chart-chevron"></i>
+    `;
+    chart.appendChild(row);
+  });
+
+  // Divider + suggested row
+  const divider = document.createElement('hr');
+  divider.className = 'chart-divider';
+  chart.appendChild(divider);
+
+  const sugRow = document.createElement('div');
+  sugRow.className = 'chart-row suggested';
+  const sugPct = maxSpend > 0 ? (env.suggested / maxSpend) * 100 : 0;
+  sugRow.innerHTML = `
+    <span class="chart-month">Sug.</span>
+    <div class="chart-bar-wrap"><div class="chart-bar-fill" style="width:0%;background:#4ade80"></div></div>
+    <span class="chart-amount">${fmtDollars(env.suggested)}</span>
+    <span style="width:14px"></span>
+  `;
+  chart.appendChild(sugRow);
+
+  // Animate bars in
+  requestAnimationFrame(() => {
+    chart.querySelectorAll('.chart-bar-fill').forEach((bar, i) => {
+      const isLast = i === chart.querySelectorAll('.chart-bar-fill').length - 1;
+      const target = isLast ? sugPct : (history[i] ? (history[i].spent / maxSpend) * 100 : 0);
+      setTimeout(() => { bar.style.width = `${target}%`; }, 80 + i * 60);
+    });
+  });
+
+  // Amount input
+  const input = document.getElementById('drawerInput');
+  const currentDollars = Math.round(allocations[idx] / 100);
+  input.value = currentDollars > 0 ? currentDollars : '';
+
+  // Suggested button
+  const sugBtn = document.getElementById('drawerSuggested');
+  drawerSuggestedAlloc = Math.max(0, env.suggested - env.balance);
+  const sugDollars = Math.round(drawerSuggestedAlloc / 100);
+  if (drawerSuggestedAlloc > 0) {
+    sugBtn.textContent = `Use Suggested ($${sugDollars})`;
+    sugBtn.disabled = false;
+    sugBtn.style.display = '';
+  } else {
+    sugBtn.textContent = 'Already at or above suggested';
+    sugBtn.disabled = true;
+    sugBtn.style.display = '';
+  }
+
+  // Done button color
+  document.getElementById('drawerDone').style.background = env.color;
+
+  // Minus button state
+  updateDrawerMinus();
+
+  // Open
+  document.getElementById('drawerBackdrop').classList.add('open');
+  drawer.classList.add('open');
+}
+
+function closeAllocDrawer() {
+  document.getElementById('drawerBackdrop').classList.remove('open');
+  document.getElementById('allocDrawer').classList.remove('open');
+  drawerEnvelopeIdx = null;
+}
+
+function getDrawerInputCents() {
+  const val = parseInt(document.getElementById('drawerInput').value) || 0;
+  return Math.max(0, val * 100);
+}
+
+function setDrawerAllocation(cents) {
+  if (drawerEnvelopeIdx === null) return;
+  allocations[drawerEnvelopeIdx] = Math.max(0, cents);
+  const dollars = Math.round(cents / 100);
+  document.getElementById('drawerInput').value = dollars > 0 ? dollars : '';
+  updateDrawerBalance();
+  updateDrawerMinus();
+}
+
+function updateDrawerBalance() {
+  if (drawerEnvelopeIdx === null) return;
+  const env = envelopesDef[drawerEnvelopeIdx];
+  const balance = env.balance + allocations[drawerEnvelopeIdx];
+  document.getElementById('drawerBalance').textContent = `Balance: ${fmtDollars(balance)}`;
+}
+
+function updateDrawerMinus() {
+  const btn = document.getElementById('drawerMinus');
+  const val = drawerEnvelopeIdx !== null ? allocations[drawerEnvelopeIdx] : 0;
+  btn.disabled = val <= 0;
+}
+
+// Drawer event listeners
+document.getElementById('drawerBackdrop').addEventListener('click', () => {
+  applyDrawerAndClose();
+});
+document.getElementById('drawerClose').addEventListener('click', () => {
+  applyDrawerAndClose();
+});
+document.getElementById('drawerDone').addEventListener('click', () => {
+  applyDrawerAndClose();
+});
+
+function applyDrawerAndClose() {
+  if (drawerEnvelopeIdx !== null) {
+    allocations[drawerEnvelopeIdx] = getDrawerInputCents();
+    updateAllocationUI();
+  }
+  closeAllocDrawer();
+}
+
+document.getElementById('drawerMinus').addEventListener('click', () => {
+  if (drawerEnvelopeIdx === null) return;
+  const current = getDrawerInputCents();
+  setDrawerAllocation(Math.max(0, current - 2500)); // -$25
+});
+
+document.getElementById('drawerPlus').addEventListener('click', () => {
+  if (drawerEnvelopeIdx === null) return;
+  const current = getDrawerInputCents();
+  setDrawerAllocation(current + 2500); // +$25
+});
+
+document.getElementById('drawerSuggested').addEventListener('click', () => {
+  if (drawerEnvelopeIdx === null) return;
+  setDrawerAllocation(drawerSuggestedAlloc);
+});
+
+document.getElementById('drawerInput').addEventListener('focus', (e) => {
+  e.target.select();
+});
+
+document.getElementById('drawerInput').addEventListener('input', (e) => {
+  e.target.value = e.target.value.replace(/[^0-9]/g, '');
+  updateDrawerMinus();
+});
+
+document.getElementById('drawerInput').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') {
+    applyDrawerAndClose();
+  } else if (e.key === 'Escape') {
+    closeAllocDrawer();
+  }
+});
+
+function animateAllocation() {
+  const els = ['allocTitle', 'allocSubtitle', 'incomeSection', 'allocProgress', 'quickActions', 'allocLabel'];
+  els.forEach((id, i) => {
+    const el = document.getElementById(id);
+    setTimeout(() => {
+      el.style.transition = 'opacity 0.3s ease-out, transform 0.3s ease-out';
+      el.style.opacity = '1';
+      el.style.transform = 'translateY(0)';
+    }, 100 + i * 100);
+  });
+}
+
+// ══════════════════════════════════════════════════════════
+// ── COIN DRAG SYSTEM (Income → Envelope) ──
+// ══════════════════════════════════════════════════════════
+
+const DRAG_LIMIT = 20;
+const POP_THRESHOLD = 80;
+const CREAK_INTERVAL_MAX = 120;
+const CREAK_INTERVAL_MIN = 25;
+const CREAK_BUZZ_MS = 8;
+const FLOAT_GRAVITY = 0.15;
+const FLOAT_DAMPING = 0.94;
+const FLOAT_MAX_DIST = 40;
+const FLOAT_WANDER = 0.3;
+
+const dragCoinEl = document.getElementById('dragCoin');
+const coinBurstEl = document.getElementById('coinBurst');
+
+let lastCreakTime = 0;
+
+function doCreak(tension) {
+  if (!navigator.vibrate) return;
+  const now = performance.now();
+  const interval = CREAK_INTERVAL_MAX - tension * (CREAK_INTERVAL_MAX - CREAK_INTERVAL_MIN);
+  if (now - lastCreakTime >= interval) {
+    const buzzDuration = Math.round(CREAK_BUZZ_MS + tension * 8);
+    navigator.vibrate(buzzDuration);
+    lastCreakTime = now;
+  }
+}
+
+function spawnBurst(cx, cy) {
+  coinBurstEl.style.left = `${cx - 20}px`;
+  coinBurstEl.style.top = `${cy - 20}px`;
+  coinBurstEl.className = 'coin-burst';
+  void coinBurstEl.offsetWidth;
+  coinBurstEl.className = 'coin-burst go';
+
+  for (let i = 0; i < 8; i++) {
+    const spark = document.createElement('div');
+    spark.className = 'spark';
+    const angle = (Math.PI * 2 / 8) * i + (Math.random() - 0.5) * 0.5;
+    const dist = 25 + Math.random() * 20;
+    spark.style.left = `${cx - 2}px`;
+    spark.style.top = `${cy - 2}px`;
+    spark.style.setProperty('--sx', `${Math.cos(angle) * dist}px`);
+    spark.style.setProperty('--sy', `${Math.sin(angle) * dist}px`);
+    document.body.appendChild(spark);
+    void spark.offsetWidth;
+    spark.classList.add('go');
+    spark.addEventListener('animationend', () => spark.remove());
+  }
+}
+
+function spawnTrailSpark(x, y) {
+  const spark = document.createElement('div');
+  spark.className = 'trail-spark';
+  const sizes = [3, 4, 5, 6];
+  const size = sizes[Math.floor(Math.random() * sizes.length)];
+  const gridSize = 4;
+  const spread = 16;
+  const dx = Math.round((Math.random() - 0.5) * spread / gridSize) * gridSize;
+  const dy = Math.round((Math.random() - 0.5) * spread / gridSize) * gridSize;
+
+  spark.style.width = `${size}px`;
+  spark.style.height = `${size}px`;
+  spark.style.left = `${Math.round(x / 2) * 2 + dx}px`;
+  spark.style.top = `${Math.round(y / 2) * 2 + dy}px`;
+  spark.style.opacity = '1';
+  document.body.appendChild(spark);
+
+  const driftX = Math.round((dx * 1.5 + (Math.random() - 0.5) * 12) / gridSize) * gridSize;
+  const driftY = Math.round((dy + 8 + Math.random() * 12) / gridSize) * gridSize;
+
+  spark.animate([
+    { opacity: 1, transform: 'translate(0, 0)' },
+    { opacity: 0.7, transform: `translate(${driftX * 0.5}px, ${driftY * 0.4}px)`, offset: 0.5 },
+    { opacity: 0, transform: `translate(${driftX}px, ${driftY}px)` },
+  ], { duration: 300 + Math.random() * 200, easing: 'steps(6)' }).onfinish = () => spark.remove();
+}
+
+function spawnAmountBadge(el, text, type) {
+  const badge = document.createElement('div');
+  badge.className = `amount-badge ${type}`;
+  badge.textContent = text;
+  const rect = el.getBoundingClientRect();
+  badge.style.left = `${rect.left + rect.width / 2}px`;
+  badge.style.top = `${rect.top + rect.height / 2}px`;
+  document.body.appendChild(badge);
+  badge.addEventListener('animationend', () => badge.remove());
+}
+
+// ══════════════════════════════════════════════════════════
+// ── Step 4: Complete ──
+// ══════════════════════════════════════════════════════════
+
+function animateComplete() {
+  // Staggered confetti bursts
+  confettiBurst(window.innerWidth * 0.3, window.innerHeight * 0.4);
+  setTimeout(() => confettiBurst(window.innerWidth * 0.7, window.innerHeight * 0.35), 300);
+  setTimeout(() => confettiBurst(window.innerWidth * 0.5, window.innerHeight * 0.25), 600);
+
+  const icon = document.getElementById('completeIcon');
+  const title = document.getElementById('completeTitle');
+  const summary = document.getElementById('completeSummary');
+  const info = document.getElementById('completeInfoBox');
+  const btn = document.getElementById('btnFinish');
+
+  let d = 0;
+  setTimeout(() => { icon.style.transition = 'opacity 0.5s cubic-bezier(0.34,1.56,0.64,1), transform 0.5s cubic-bezier(0.34,1.56,0.64,1)'; icon.style.opacity = '1'; icon.style.transform = 'scale(1)'; }, d += 200);
+  setTimeout(() => { title.style.transition = 'opacity 0.4s ease-out, transform 0.4s ease-out'; title.style.opacity = '1'; title.style.transform = 'translateY(0)'; }, d += 300);
+  setTimeout(() => { summary.style.transition = 'opacity 0.3s ease-out, transform 0.3s ease-out'; summary.style.opacity = '1'; summary.style.transform = 'scale(1)'; }, d += 200);
+  setTimeout(() => { info.style.transition = 'opacity 0.3s ease-out, transform 0.3s ease-out'; info.style.opacity = '1'; info.style.transform = 'translateY(0)'; }, d += 200);
+  setTimeout(() => { btn.style.transition = 'opacity 0.3s ease-out, transform 0.3s ease-out'; btn.style.opacity = '1'; btn.style.transform = 'scale(1)'; }, d += 200);
+}
+
+function animateStep(idx) {
+  switch (steps[idx]) {
+    case 'debrief': animateDebrief(); break;
+    case 'leftovers': animateLeftovers(); break;
+    case 'allocation': animateAllocation(); break;
+    case 'complete': animateComplete(); break;
+  }
+}
+
+// ── Confetti ──
+function confettiBurst(ox, oy) {
+  const cx = ox ?? window.innerWidth / 2;
+  const cy = oy ?? window.innerHeight / 2;
+  const clrs = ['#c084fc','#4ade80','#f472b6','#9836fe','#60a5fa','#FF6B6B','#34d399','#fb923c'];
+
+  for (let i = 0; i < 25; i++) {
+    const p = document.createElement('div');
+    const size = 6 + Math.random() * 6;
+    const isCircle = Math.random() > 0.5;
+    p.className = 'confetti-particle';
+    p.style.left = `${cx}px`;
+    p.style.top = `${cy}px`;
+    p.style.width = `${size}px`;
+    p.style.height = `${isCircle ? size : size * 0.6}px`;
+    p.style.borderRadius = isCircle ? '50%' : '2px';
+    p.style.background = clrs[Math.floor(Math.random() * clrs.length)];
+    document.body.appendChild(p);
+
+    const angle = Math.random() * Math.PI * 2;
+    const velocity = 100 + Math.random() * 200;
+    const duration = 1000 + Math.random() * 800;
+    const destX = Math.cos(angle) * velocity;
+    const destY = Math.sin(angle) * velocity + 200;
+    const rot = -720 + Math.random() * 1440;
+
+    p.animate([
+      { transform: 'translate(-50%,-50%) rotate(0deg) scale(1)', opacity: 1 },
+      { transform: `translate(calc(-50% + ${destX}px), calc(-50% + ${destY}px)) rotate(${rot}deg) scale(${0.3 + Math.random() * 0.5})`, opacity: 0 },
+    ], { duration, easing: 'cubic-bezier(0.25, 0.46, 0.45, 0.94)' }).onfinish = () => p.remove();
+  }
+
+  if (navigator.vibrate) navigator.vibrate([50, 30, 50]);
+}
+
+// ── Coin transfer (for Complete button — same physics as step 2 drag) ──
+function coinTransfer(sx, sy, tx, ty, count, tile, onDone) {
+  const GRAVITY = 0.08, EMIT_SPEED = 2.0, EMIT_STAGGER = 70, ABSORB_RADIUS = 45, DRAG_C = 0.98, COIN_R = 16;
+  let landed = 0;
+  const particles = [];
+
+  for (let i = 0; i < count; i++) {
+    const coin = document.createElement('div');
+    coin.className = 'transfer-coin'; coin.textContent = '$'; coin.style.opacity = '0';
+    document.body.appendChild(coin);
+    const angle = (Math.PI * 2 / count) * i + (Math.random() - 0.5) * 0.6;
+    const speed = EMIT_SPEED * (0.8 + Math.random() * 0.4);
+    particles.push({ el: coin, x: sx, y: sy, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed, scale: 0, rotation: 0, rotSpeed: (Math.random() - 0.5) * 3, alive: false, launched: false, trailFrame: 0 });
+  }
+  particles.forEach((p, i) => { setTimeout(() => { p.alive = true; p.launched = true; }, i * EMIT_STAGGER); });
+
+  function tick() {
+    let allDone = true;
+    for (const p of particles) {
+      if (!p.launched) { allDone = false; continue; }
+      if (!p.alive) continue;
+      allDone = false;
+      if (p.scale < 1) { p.scale = Math.min(1, p.scale + 0.08); p.el.style.opacity = '1'; }
+      const dx = tx - p.x, dy = ty - p.y;
+      const distSq = dx * dx + dy * dy, dist = Math.sqrt(distSq);
+      const force = GRAVITY * Math.max(1, 8000 / distSq);
+      p.vx += (dx / dist) * force + (dx / dist) * 0.25;
+      p.vy += (dy / dist) * force + (dy / dist) * 0.25;
+      p.vx *= DRAG_C; p.vy *= DRAG_C;
+      p.x += p.vx; p.y += p.vy; p.rotation += p.rotSpeed;
+      const vw = window.innerWidth, vh = window.innerHeight;
+      if (p.x < COIN_R) { p.x = COIN_R; p.vx = Math.abs(p.vx) * 0.6; }
+      if (p.x > vw - COIN_R) { p.x = vw - COIN_R; p.vx = -Math.abs(p.vx) * 0.6; }
+      if (p.y < COIN_R) { p.y = COIN_R; p.vy = Math.abs(p.vy) * 0.6; }
+      if (p.y > vh - COIN_R) { p.y = vh - COIN_R; p.vy = -Math.abs(p.vy) * 0.6; }
+      const aScale = Math.min(1, dist / 60);
+      p.el.style.left = `${p.x - 14}px`; p.el.style.top = `${p.y - 14}px`;
+      p.el.style.transform = `scale(${p.scale * (0.3 + aScale * 0.7)}) rotate(${p.rotation}deg)`;
+      p.el.style.opacity = Math.min(1, dist / 20);
+      p.trailFrame++;
+      if (p.trailFrame % 3 === 0 && Math.sqrt(p.vx ** 2 + p.vy ** 2) > 2 && dist > 50) spawnTrailSpark(p.x, p.y);
+      if (dist < ABSORB_RADIUS) {
+        p.alive = false; p.el.remove(); landed++;
+        if (tile) tile.animate([{ transform: 'scale(1)' }, { transform: `scale(${1.04 + (landed / count) * 0.08})` }, { transform: 'scale(1)' }], { duration: 200, easing: 'cubic-bezier(0.175,0.885,0.32,1.275)' });
+        if (navigator.vibrate) navigator.vibrate(8);
+        if (landed === count) {
+          if (tile) tile.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.15)' }, { transform: 'scale(0.96)' }, { transform: 'scale(1.04)' }, { transform: 'scale(1)' }], { duration: 350, easing: 'linear' });
+          if (navigator.vibrate) navigator.vibrate(25);
+          if (onDone) onDone();
+        }
+      }
+    }
+    if (!allDone) requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+}
+
+// ── Build + Init ──
+buildLeftovers();
+buildAllocation();
+updateAllocationUI();
+
+setTimeout(() => animateDebrief(), 300);
+
+// ── Button handlers ──
+document.getElementById('btnDebrief').addEventListener('click', () => goToStep(1));
+document.getElementById('btnLeftovers').addEventListener('click', () => goToStep(2));
+
+document.getElementById('btnFillAll').addEventListener('click', () => {
+  envelopesDef.forEach((env, i) => {
+    allocations[i] = Math.max(0, env.suggested - env.balance);
+  });
+  updateAllocationUI();
+});
+
+document.getElementById('btnClear').addEventListener('click', () => {
+  envelopesDef.forEach((_, i) => allocations[i] = 0);
+  updateAllocationUI();
+});
+
+document.getElementById('btnComplete').addEventListener('click', () => {
+  const total = Object.values(allocations).reduce((s, v) => s + v, 0);
+  if (total <= 0) return;
+
+  const incomeEl = document.getElementById('incomeTile');
+  const incomeRect = incomeEl.getBoundingClientRect();
+  const ix = incomeRect.left + incomeRect.width / 2;
+  const iy = incomeRect.top + incomeRect.height / 2;
+
+  const grid = document.getElementById('allocGrid');
+  const tiles = grid.querySelectorAll('.alloc-tile');
+  let animated = 0;
+  let totalTiles = 0;
+
+  tiles.forEach((tile, i) => {
+    if (allocations[i] > 0) totalTiles++;
+  });
+
+  if (totalTiles === 0) { goToStep(3); return; }
+
+  tiles.forEach((tile, i) => {
+    if (allocations[i] > 0) {
+      const r = tile.getBoundingClientRect();
+      const count = Math.min(Math.ceil(allocations[i] / 10000), 8);
+      setTimeout(() => {
+        coinTransfer(ix, iy, r.left + r.width / 2, r.top + r.height / 2, count, tile, () => {
+          animated++;
+          if (animated === totalTiles) {
+            setTimeout(() => goToStep(3), 600);
+          }
+        });
+      }, i * 100);
+    }
+  });
+});
+
+document.getElementById('btnFinish').addEventListener('click', () => {
+  allocations = {};
+  envelopesDef.forEach((_, i) => allocations[i] = 0);
+  updateAllocationUI();
+
+  ['debriefIcon','debriefTitle','debriefSubtitle','debriefDate','statsRow','highlightsLabel','card0','card1','card2','btnDebrief'].forEach(id => {
+    const el = document.getElementById(id);
+    el.style.transition = 'none';
+    el.style.opacity = '0';
+  });
+  document.getElementById('debriefIcon').style.transform = 'scale(0.5)';
+  document.getElementById('debriefTitle').style.transform = 'translateY(-20px)';
+  document.getElementById('statsRow').style.transform = 'translateY(10px)';
+  document.getElementById('highlightsLabel').style.transform = 'translateY(10px)';
+  ['card0','card1','card2'].forEach(id => document.getElementById(id).style.transform = 'translateX(-40px)');
+  document.getElementById('btnDebrief').style.transform = 'translateY(10px)';
+
+  document.getElementById('completeIcon').style.transition = 'none';
+  document.getElementById('completeIcon').style.opacity = '0';
+  document.getElementById('completeIcon').style.transform = 'scale(0.3)';
+  document.getElementById('completeTitle').style.transition = 'none';
+  document.getElementById('completeTitle').style.opacity = '0';
+  document.getElementById('completeTitle').style.transform = 'translateY(20px)';
+  document.getElementById('completeSummary').style.transition = 'none';
+  document.getElementById('completeSummary').style.opacity = '0';
+  document.getElementById('completeSummary').style.transform = 'scale(0.8)';
+  document.getElementById('completeInfoBox').style.transition = 'none';
+  document.getElementById('completeInfoBox').style.opacity = '0';
+  document.getElementById('completeInfoBox').style.transform = 'translateY(10px)';
+  document.getElementById('btnFinish').style.transition = 'none';
+  document.getElementById('btnFinish').style.opacity = '0';
+  document.getElementById('btnFinish').style.transform = 'scale(0.9)';
+
+  document.getElementById('leftTitle').style.transition = 'none';
+  document.getElementById('leftTitle').style.opacity = '0';
+  document.getElementById('leftTitle').style.transform = 'translateY(-10px)';
+  document.getElementById('leftSubtitle').style.transition = 'none';
+  document.getElementById('leftSubtitle').style.opacity = '0';
+
+  ['allocTitle','allocSubtitle','incomeSection','allocProgress','quickActions','allocLabel'].forEach(id => {
+    const el = document.getElementById(id);
+    el.style.transition = 'none';
+    el.style.opacity = '0';
+  });
+
+  goToStep(0);
+});
+</script>
+
+</body>
+</html>

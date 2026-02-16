@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Loot — How It Works</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/@phosphor-icons/web@2.1.1"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html {
+      font-size: 125%;
+    }
+
+    @media (max-width: 600px) {
+      html {
+        font-size: 100%;
+      }
+    }
+
+    body {
+      font-family: 'Nunito', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: transparent;
+      color: #f0f0f5;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      overflow: hidden;
+    }
+
+    .container {
+      display: flex;
+      flex-direction: column;
+      gap: 1.1rem;
+      padding: 2.5rem 2rem;
+      max-width: 48rem;
+      width: 100%;
+      margin: 0 auto;
+    }
+
+    .card {
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+      padding: 1.75rem 2rem;
+      border-radius: 1.4rem;
+      background: rgba(26, 26, 46, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      opacity: 0;
+      transform: translateY(40px) scale(0.92);
+      position: relative;
+      overflow: hidden;
+      transition: border-color 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease;
+    }
+
+    .card:hover {
+      transform: translateX(0) translateY(-1px);
+    }
+
+    /* Shimmer sweep on hover */
+    .card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(152, 54, 254, 0.05),
+        transparent
+      );
+      transition: left 0.6s ease;
+      pointer-events: none;
+    }
+    .card:hover::before {
+      left: 100%;
+    }
+
+    .icon-ring {
+      width: 4.5rem;
+      height: 4.5rem;
+      min-width: 4.5rem;
+      border-radius: 1.25rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+
+    /* Glow behind icon on hover */
+    .icon-ring::after {
+      content: '';
+      position: absolute;
+      inset: -0.5rem;
+      border-radius: 1.75rem;
+      opacity: 0;
+      transition: opacity 0.4s ease;
+      pointer-events: none;
+    }
+    .card:hover .icon-ring::after {
+      opacity: 1;
+    }
+
+    .icon-ring i {
+      font-size: 2.25rem;
+    }
+
+    /* Card 1: Bank — sky blue */
+    .card-bank .icon-ring {
+      background: rgba(96, 165, 250, 0.15);
+      color: #60a5fa;
+    }
+    .card-bank .icon-ring::after {
+      background: radial-gradient(circle, rgba(96, 165, 250, 0.2) 0%, transparent 70%);
+    }
+    .card-bank:hover {
+      border-color: rgba(96, 165, 250, 0.25);
+      box-shadow: 0 4px 28px rgba(96, 165, 250, 0.08);
+    }
+
+    /* Card 2: Sparkle — brand purple */
+    .card-learn .icon-ring {
+      background: rgba(152, 54, 254, 0.15);
+      color: #b06aff;
+    }
+    .card-learn .icon-ring::after {
+      background: radial-gradient(circle, rgba(152, 54, 254, 0.2) 0%, transparent 70%);
+    }
+    .card-learn:hover {
+      border-color: rgba(152, 54, 254, 0.25);
+      box-shadow: 0 4px 28px rgba(152, 54, 254, 0.1);
+    }
+
+    /* Card 3: TrendUp — green */
+    .card-predict .icon-ring {
+      background: rgba(74, 222, 128, 0.15);
+      color: #4ade80;
+    }
+    .card-predict .icon-ring::after {
+      background: radial-gradient(circle, rgba(74, 222, 128, 0.2) 0%, transparent 70%);
+    }
+    .card-predict:hover {
+      border-color: rgba(74, 222, 128, 0.25);
+      box-shadow: 0 4px 28px rgba(74, 222, 128, 0.08);
+    }
+
+    .card-text h3 {
+      font-size: 1.25rem;
+      font-weight: 800;
+      color: #f0f0f5;
+      margin-bottom: 0.2rem;
+      letter-spacing: -0.2px;
+    }
+
+    .card-text p {
+      font-size: 0.9rem;
+      font-weight: 400;
+      color: #a0a0c0;
+      line-height: 1.55;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <div class="card card-bank">
+    <div class="icon-ring">
+      <i class="ph-duotone ph-bank"></i>
+    </div>
+    <div class="card-text">
+      <h3>Connects to your bank</h3>
+      <p>View-only access via Akahu. Your money stays exactly where it is.</p>
+    </div>
+  </div>
+
+  <div class="card card-learn">
+    <div class="icon-ring">
+      <i class="ph-duotone ph-sparkle"></i>
+    </div>
+    <div class="card-text">
+      <h3>Learns your habits</h3>
+      <p>Assigns transactions automatically as it recognises your spending patterns.</p>
+    </div>
+  </div>
+
+  <div class="card card-predict">
+    <div class="icon-ring">
+      <i class="ph-duotone ph-trend-up"></i>
+    </div>
+    <div class="card-text">
+      <h3>Predicts your budget</h3>
+      <p>Suggests how much to set aside each pay cycle based on your real spending.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+  const cards = document.querySelectorAll('.card');
+  const container = document.querySelector('.container');
+  let hasPlayed = false;
+
+  // Wait until the iframe scrolls into view before animating
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting && !hasPlayed) {
+        hasPlayed = true;
+        observer.disconnect();
+        playEntrance();
+      }
+    });
+  }, { threshold: 0.15 });
+
+  observer.observe(container);
+
+  function playEntrance() {
+    const tl = gsap.timeline({ delay: 0.1 });
+
+    // Cards fly up with scale + fade, staggered
+    tl.to(cards, {
+      opacity: 1,
+      y: 0,
+      scale: 1,
+      duration: 0.9,
+      stagger: 0.2,
+      ease: 'back.out(1.6)',
+    });
+
+    // Flash each icon ring as it lands
+    tl.to('.card-bank .icon-ring', {
+      boxShadow: '0 0 20px rgba(96, 165, 250, 0.4)',
+      duration: 0.3,
+      yoyo: true,
+      repeat: 1,
+      ease: 'power2.out',
+    }, '-=0.9');
+    tl.to('.card-learn .icon-ring', {
+      boxShadow: '0 0 20px rgba(152, 54, 254, 0.4)',
+      duration: 0.3,
+      yoyo: true,
+      repeat: 1,
+      ease: 'power2.out',
+    }, '-=0.7');
+    tl.to('.card-predict .icon-ring', {
+      boxShadow: '0 0 20px rgba(74, 222, 128, 0.4)',
+      duration: 0.3,
+      yoyo: true,
+      repeat: 1,
+      ease: 'power2.out',
+    }, '-=0.5');
+
+    // Start idle loops
+    tl.add(() => startIconAnimations(), '-=0.2');
+  }
+
+  function startIconAnimations() {
+    gsap.to('.card-bank .icon-ring', {
+      scale: 1.06,
+      duration: 2,
+      ease: 'sine.inOut',
+      yoyo: true,
+      repeat: -1,
+    });
+
+    gsap.to('.card-learn .icon-ring', {
+      rotation: 10,
+      duration: 2.4,
+      ease: 'sine.inOut',
+      yoyo: true,
+      repeat: -1,
+    });
+    gsap.to('.card-learn .icon-ring i', {
+      scale: 1.18,
+      duration: 1.6,
+      ease: 'sine.inOut',
+      yoyo: true,
+      repeat: -1,
+    });
+
+    gsap.to('.card-predict .icon-ring', {
+      y: -5,
+      duration: 2.2,
+      ease: 'sine.inOut',
+      yoyo: true,
+      repeat: -1,
+    });
+  }
+</script>
+
+</body>
+</html>

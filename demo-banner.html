@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Loot — Banner</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body {
+      width: 100%; height: 100%;
+      background: transparent;
+      overflow: hidden;
+      font-family: 'Nunito', system-ui, -apple-system, sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .banner {
+      width: 100%;
+      height: 100vh;
+      max-height: 800px;
+      min-height: 650px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      perspective: 1400px;
+      perspective-origin: 50% 45%;
+    }
+
+    .content-area {
+      position: relative;
+      width: 100%;
+      max-width: 1100px;
+      height: 100%;
+      margin: 0 auto;
+    }
+
+    /* ═══════ 3D PHONE ═══════ */
+
+    .phone-stage {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      transform-style: preserve-3d;
+    }
+
+    .phone-3d {
+      --pw: 270px;
+      --ph: 580px;
+      --depth: 48px;  /* 16 layers × 3px */
+      --bezel: 10px;
+      --radius: 44px;
+
+      width: var(--pw);
+      height: var(--ph);
+      position: relative;
+      transform-style: preserve-3d;
+      will-change: transform;
+    }
+
+    /* ── Front face ── */
+    .phone-front {
+      position: absolute;
+      inset: 0;
+      border-radius: var(--radius);
+      transform: translateZ(calc(var(--depth) / 2));
+      background: linear-gradient(145deg, #2c2c2c 0%, #1a1a1a 40%, #111 100%);
+      padding: var(--bezel);
+      box-shadow:
+        0 0 0 1px rgba(255,255,255,0.12),
+        inset 0 1px 1px rgba(255,255,255,0.08),
+        inset 0 -1px 1px rgba(0,0,0,0.3);
+      backface-visibility: hidden;
+    }
+
+    .screen {
+      width: 100%;
+      height: 100%;
+      border-radius: 36px;
+      overflow: hidden;
+      position: relative;
+      background: #1a1a2e;
+    }
+
+    .iframe-wrap {
+      width: 412px;
+      height: 915px;
+      transform: scale(calc(250 / 412));
+      transform-origin: top left;
+      position: absolute;
+      top: 0; left: 0;
+    }
+    .iframe-wrap iframe {
+      width: 100%; height: 100%;
+      border: none;
+    }
+
+    .dynamic-island {
+      position: absolute;
+      top: 8px; left: 50%;
+      transform: translateX(-50%);
+      width: 78px; height: 22px;
+      background: #000;
+      border-radius: 16px;
+      z-index: 10;
+    }
+    .dynamic-island::after {
+      content: '';
+      position: absolute;
+      right: 14px; top: 50%;
+      transform: translateY(-50%);
+      width: 7px; height: 7px;
+      background: radial-gradient(circle at 40% 40%, #1a2a3a, #0a0a1a);
+      border-radius: 50%;
+    }
+
+    .screen-glare {
+      position: absolute; inset: 0;
+      border-radius: 36px;
+      pointer-events: none;
+      z-index: 5;
+      background: linear-gradient(125deg,
+        rgba(255,255,255,0.07) 0%,
+        rgba(255,255,255,0.02) 18%,
+        transparent 38%
+      );
+    }
+
+    /* Power + volume buttons on front */
+    .phone-front::before {
+      content: '';
+      position: absolute;
+      right: -3px; top: 140px;
+      width: 3px; height: 46px;
+      background: linear-gradient(to right, #2a2a2a, #1a1a1a);
+      border-radius: 0 2px 2px 0;
+    }
+    .btn-silent, .btn-vol-up, .btn-vol-down {
+      position: absolute;
+      left: -3px; width: 3px;
+      background: linear-gradient(to left, #2a2a2a, #1a1a1a);
+      border-radius: 2px 0 0 2px;
+    }
+    .btn-silent   { top: 95px;  height: 22px; }
+    .btn-vol-up   { top: 135px; height: 36px; }
+    .btn-vol-down { top: 180px; height: 36px; }
+
+    /* ── Back face ── */
+    .phone-back {
+      position: absolute;
+      inset: 0;
+      border-radius: var(--radius);
+      transform: rotateY(180deg) translateZ(calc(var(--depth) / 2));
+      background: linear-gradient(160deg, #303030 0%, #1e1e1e 35%, #141414 100%);
+      box-shadow:
+        0 0 0 1px rgba(255,255,255,0.08),
+        inset 0 1px 1px rgba(255,255,255,0.05),
+        inset 0 -1px 2px rgba(0,0,0,0.4);
+      backface-visibility: hidden;
+      overflow: hidden;
+    }
+
+    /* Subtle matte texture on back */
+    .phone-back::before {
+      content: '';
+      position: absolute; inset: 0;
+      border-radius: var(--radius);
+      background: repeating-conic-gradient(
+        rgba(255,255,255,0.008) 0deg 1deg,
+        transparent 1deg 2deg
+      );
+    }
+
+    .camera-bump {
+      position: absolute;
+      top: 18px; left: 18px;
+      width: 72px; height: 72px;
+      background: linear-gradient(145deg, #222, #181818);
+      border-radius: 20px;
+      border: 1px solid rgba(255,255,255,0.06);
+      padding: 8px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 5px;
+    }
+    .lens {
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 35%, #1c2a3a, #06060e);
+      border: 1.5px solid #333;
+      box-shadow:
+        inset 0 0 3px rgba(40, 90, 160, 0.3),
+        0 0 4px rgba(0,0,0,0.4);
+    }
+    .lens.lidar {
+      background: radial-gradient(circle at 50% 50%, #1a1a2a, #0a0a12);
+      border-color: #2a2a2a;
+      box-shadow: inset 0 0 2px rgba(80,60,140,0.2);
+    }
+    .flash {
+      position: absolute;
+      top: 26px; left: 98px;
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 45% 40%, #f0e4c8, #c4a45a 60%, #8a7030);
+      box-shadow: 0 0 6px rgba(240,220,160,0.15);
+    }
+    .back-logo {
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: 32px; height: 32px;
+      background: rgba(255,255,255,0.04);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px; font-weight: 800;
+      color: rgba(255,255,255,0.06);
+    }
+
+    /* ── Depth layers — stacked translateZ for rounded edges ── */
+    .depth-layer {
+      position: absolute;
+      inset: 0;
+      border-radius: var(--radius);
+      border: 1px solid rgba(255,255,255,0.04);
+      backface-visibility: hidden;
+      pointer-events: none;
+    }
+
+    /* ── Ambient glow ── */
+    .phone-glow {
+      position: absolute;
+      top: -40px; left: -40px;
+      right: -40px; bottom: -40px;
+      border-radius: 60px;
+      background: radial-gradient(ellipse at center,
+        rgba(152,54,254,0.12) 0%,
+        rgba(152,54,254,0.04) 40%,
+        transparent 65%
+      );
+      filter: blur(20px);
+      z-index: -1;
+      pointer-events: none;
+    }
+
+    /* ── Ground shadow ── */
+    .ground-shadow {
+      position: absolute;
+      bottom: -35px; left: 50%;
+      width: 240px; height: 140px;
+      transform: translateX(-50%) translateZ(-120px);
+      background: radial-gradient(ellipse at 50% 30%,
+        rgba(0,0,0,0.55) 0%,
+        rgba(0,0,0,0.15) 40%,
+        transparent 70%
+      );
+      filter: blur(16px);
+      pointer-events: none;
+    }
+
+    /* ═══════ TAGLINE ═══════ */
+
+    .tagline {
+      position: absolute;
+      top: 50%;
+      right: 80px;
+      transform: translateY(-50%);
+      max-width: 400px;
+      opacity: 0;
+    }
+    .tagline-logo {
+      width: 320px;
+      margin-bottom: 28px;
+      display: block;
+    }
+    .tagline-text {
+      font-size: 38px;
+      font-weight: 800;
+      color: #f0f0f5;
+      line-height: 1.2;
+      letter-spacing: -0.5px;
+    }
+    .tagline-accent {
+      color: #9836fe;
+    }
+    .tagline-sub {
+      font-size: 15px;
+      font-weight: 500;
+      color: #606080;
+      margin-top: 20px;
+      line-height: 1.5;
+    }
+    .tagline-cta {
+      display: inline-block;
+      margin-top: 28px;
+      padding: 12px 32px;
+      background: #9836fe;
+      color: white;
+      font-size: 15px;
+      font-weight: 700;
+      font-family: inherit;
+      text-decoration: none;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      box-shadow: 0 4px 20px rgba(152,54,254,0.35);
+    }
+
+    /* ═══════ NARROW (stacked) LAYOUT ═══════ */
+    @media (max-width: 900px) {
+      .banner { min-height: 550px; }
+      .tagline-logo { width: 180px; margin: 0 auto 16px; }
+      .tagline-text { font-size: 26px; }
+      .tagline-sub  { font-size: 13px; margin-top: 12px; }
+      .tagline-cta  { margin-top: 18px; padding: 10px 28px; font-size: 14px; }
+    }
+
+    /* ═══════ FULL-FRAME COIN VORTEX ═══════ */
+    #coin-canvas {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+      pointer-events: none;
+    }
+    .banner {
+      position: relative;
+      z-index: 1;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="coin-canvas"></canvas>
+  <div class="banner">
+    <div class="content-area">
+
+      <!-- ═══ Phone ═══ -->
+      <div class="phone-stage" id="stage">
+        <div class="phone-glow" id="glow"></div>
+        <div class="phone-3d" id="phone">
+          <!-- Front -->
+          <div class="phone-front">
+            <div class="btn-silent"></div>
+            <div class="btn-vol-up"></div>
+            <div class="btn-vol-down"></div>
+            <div class="screen">
+              <div class="dynamic-island"></div>
+              <div class="iframe-wrap">
+                <iframe id="scene" src="scene-splash.html?noloop" allow="autoplay" scrolling="no"></iframe>
+              </div>
+              <div class="screen-glare"></div>
+            </div>
+          </div>
+          <!-- Back -->
+          <div class="phone-back">
+            <div class="camera-bump">
+              <div class="lens"></div>
+              <div class="lens"></div>
+              <div class="lens"></div>
+              <div class="lens lidar"></div>
+            </div>
+            <div class="flash"></div>
+            <div class="back-logo">L</div>
+          </div>
+          <!-- Depth layers (generated by JS) -->
+          <div class="depth-layers" id="depth-layers" aria-hidden="true"></div>
+        </div>
+        <div class="ground-shadow" id="shadow"></div>
+      </div>
+
+      <!-- ═══ Tagline ═══ -->
+      <div class="tagline" id="tagline">
+        <img class="tagline-logo" src="loottitle.gif" alt="Loot" id="tag-logo" />
+        <div class="tagline-text" id="tag-text">
+          Stop guessing where your <span class="tagline-accent">money</span> went.
+        </div>
+        <div class="tagline-sub" id="tag-sub">
+          Envelope budgeting that works with NZ banks.
+        </div>
+        <a class="tagline-cta" id="tag-cta" href="#" onclick="window.parent.postMessage({action:'cta-click'},'*');return false;">See It In Action</a>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    /* ── Generate depth layers ── */
+    (function () {
+      const container = document.getElementById('depth-layers');
+      const LAYERS = 16;
+      const SPACING = 3;            /* px between each layer (16×3 = 48px depth) */
+      for (let i = 1; i <= LAYERS; i++) {
+        const el = document.createElement('div');
+        el.className = 'depth-layer';
+        const z = -(i * SPACING);
+        /* Titanium gradient: lighter at edges, darker in middle */
+        const lightness = Math.max(12, 36 - i * 1.5);
+        el.style.transform = `translateZ(${z}px)`;
+        el.style.background = `hsl(0, 0%, ${lightness}%)`;
+        container.appendChild(el);
+      }
+    })();
+  </script>
+  <script>
+    /* ═══════ Full-frame coin vortex ═══════ */
+    const coinCanvas = document.getElementById('coin-canvas');
+    const coinCtx = coinCanvas.getContext('2d');
+    const coinImg = new Image();
+    coinImg.src = 'coin.png';
+
+    function sizeCanvas() {
+      coinCanvas.width = window.innerWidth;
+      coinCanvas.height = window.innerHeight;
+    }
+    sizeCanvas();
+    window.addEventListener('resize', sizeCanvas);
+
+    let vortexFade = 1;
+
+    function runVortex() {
+      sizeCanvas();
+      const COIN_COUNT = 800;
+      const coins = [];
+      for (let i = 0; i < COIN_COUNT; i++) {
+        coins.push({
+          angle: Math.random() * Math.PI * 2,
+          startRadius: Math.max(coinCanvas.width, coinCanvas.height) * 0.7 + Math.random() * 300,
+          rotation: Math.PI / 2 + Math.random() * 0.4,
+          duration: 2.0 + Math.random() * 1.5,
+          delay: Math.random() * 1.2,
+          size: 40 + Math.random() * 50,
+          alive: true,
+          /* sparkle trail: each coin emits sparkles */
+          sparkleTimer: 0,
+        });
+      }
+
+      /* Sparkle particle pool */
+      const MAX_SPARKLES = 3000;
+      const sparkles = [];
+      function emitSparkle(x, y, speed) {
+        if (sparkles.length >= MAX_SPARKLES) return;
+        sparkles.push({
+          x: x + (Math.random() - 0.5) * 8,
+          y: y + (Math.random() - 0.5) * 8,
+          vx: (Math.random() - 0.5) * speed * 0.3,
+          vy: (Math.random() - 0.5) * speed * 0.3,
+          life: 1,
+          decay: 0.02 + Math.random() * 0.03,
+          size: 1.5 + Math.random() * 3,
+          hue: Math.random() < 0.6 ? 270 : (Math.random() < 0.5 ? 45 : 0), /* purple, gold, white */
+        });
+      }
+
+      let start = null, killed = false;
+
+      function easeIn(t) { return t * t; }
+
+      function frame(ts) {
+        if (killed) return;
+        if (!start) start = ts;
+        const elapsed = (ts - start) / 1000;
+        coinCtx.clearRect(0, 0, coinCanvas.width, coinCanvas.height);
+
+        if (vortexFade <= 0) { killed = true; return; }
+
+        let alive = 0;
+        const cx = coinCanvas.width / 2;
+        const cy = coinCanvas.height / 2;
+
+        /* Draw sparkles first (behind coins) */
+        for (let i = sparkles.length - 1; i >= 0; i--) {
+          const sp = sparkles[i];
+          sp.x += sp.vx;
+          sp.y += sp.vy;
+          sp.life -= sp.decay;
+          if (sp.life <= 0) { sparkles.splice(i, 1); continue; }
+
+          const alpha = sp.life * sp.life * vortexFade;
+          if (sp.hue === 0) {
+            coinCtx.fillStyle = `rgba(255, 255, 255, ${alpha * 0.9})`;
+          } else if (sp.hue === 45) {
+            coinCtx.fillStyle = `rgba(255, 215, 80, ${alpha * 0.8})`;
+          } else {
+            coinCtx.fillStyle = `rgba(180, 100, 255, ${alpha * 0.7})`;
+          }
+          const sz = sp.size * sp.life;
+          coinCtx.beginPath();
+          coinCtx.arc(sp.x, sp.y, sz, 0, Math.PI * 2);
+          coinCtx.fill();
+
+          /* bright core */
+          if (sz > 1.5) {
+            coinCtx.fillStyle = `rgba(255, 255, 255, ${alpha * 0.5})`;
+            coinCtx.beginPath();
+            coinCtx.arc(sp.x, sp.y, sz * 0.4, 0, Math.PI * 2);
+            coinCtx.fill();
+          }
+        }
+
+        /* Draw coins */
+        for (const c of coins) {
+          if (!c.alive) continue;
+          const t = elapsed - c.delay;
+          if (t < 0) { alive++; continue; }
+          const raw = Math.min(t / c.duration, 1);
+          if (raw >= 1) { c.alive = false; continue; }
+          alive++;
+          const p = easeIn(raw);
+          const cr = c.startRadius * (1 - p);
+          const ca = c.angle + c.rotation * p;
+          const x = cx + Math.cos(ca) * cr;
+          const y = cy + Math.sin(ca) * cr;
+          const s = c.size * (1 - p * 0.7);
+          const a = raw > 0.85 ? (1 - raw) / 0.15 : Math.min(t / 0.15, 1);
+
+          /* Emit sparkles along the trail */
+          c.sparkleTimer += 1;
+          if (c.sparkleTimer >= 3 && a > 0.2 && raw < 0.85) {
+            c.sparkleTimer = 0;
+            const speed = c.startRadius * 0.02;
+            emitSparkle(x, y, speed);
+            if (Math.random() < 0.3) emitSparkle(x, y, speed);
+          }
+
+          coinCtx.globalAlpha = a * vortexFade * 0.7;
+          coinCtx.drawImage(coinImg, x - s / 2, y - s / 2, s, s);
+        }
+        coinCtx.globalAlpha = 1;
+        if (alive > 0 || sparkles.length > 0 || vortexFade > 0) requestAnimationFrame(frame);
+      }
+
+      requestAnimationFrame(frame);
+    }
+  </script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <script>
+    const stage   = document.getElementById('stage');
+    const phone   = document.getElementById('phone');
+    const tagline = document.getElementById('tagline');
+    const tagLogo = document.getElementById('tag-logo');
+    const tagText = document.getElementById('tag-text');
+    const tagSub  = document.getElementById('tag-sub');
+    const tagCta  = document.getElementById('tag-cta');
+
+    const isNarrow = screen.width < 900;
+
+    function runBanner() {
+      /* ── Narrow: reposition tagline for stacked (phone-above, text-below) layout ── */
+      if (isNarrow) {
+        Object.assign(tagline.style, {
+          top: '0',       /* will be set dynamically after phone settles */
+          right: 'auto',
+          bottom: 'auto',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          textAlign: 'center',
+          maxWidth: '90vw',
+          width: '100%',
+        });
+        Object.assign(tagLogo.style, {
+          margin: '0 auto 8px',
+          width: '180px',
+        });
+      }
+
+      /* ── Initial state: phone centered + larger (closer) ── */
+      gsap.set(stage, { left: '50%', xPercent: -50, scale: isNarrow ? 1.0 : 1.25 });
+      gsap.set(phone, { rotateY: -14, rotateX: 6 });
+      gsap.set(tagline, { opacity: 0 });
+      gsap.set(tagLogo, { opacity: 0, y: 20, scale: 0.9 });
+      gsap.set(tagText, { opacity: 0, y: 20 });
+      gsap.set(tagSub,  { opacity: 0, y: 15 });
+      gsap.set(tagCta,  { opacity: 0, y: 15 });
+
+      /* Start the full-frame vortex */
+      vortexFade = 1;
+      runVortex();
+
+      const tl = gsap.timeline();
+
+      /* ── Phase 1: Phone centered, gentle float during splash (~0 – 4.5s) ── */
+      tl.to(phone, {
+        rotateY: -8, rotateX: 10, y: -10,
+        duration: 2.2, ease: 'sine.inOut', yoyo: true, repeat: 1,
+      })
+
+      /* ── Fade out vortex as flip begins ── */
+      .to({ v: 1 }, {
+        v: 0,
+        duration: 1.2,
+        ease: 'power2.in',
+        onUpdate: function () { vortexFade = this.targets()[0].v; },
+      }, '-=0.3')
+
+      /* ── Phase 2: Flip + position + shrink to final size ── */
+      .to(stage, {
+        left: isNarrow ? '50%' : '28%',
+        top:  isNarrow ? '30%' : '50%',
+        scale: isNarrow ? 0.65 : 1,
+        duration: 2.0,
+        ease: 'power3.inOut',
+      }, '-=0.8')
+      .to(phone, {
+        rotateY: '+=375',
+        rotateX: 4,
+        duration: 2.0,
+        ease: 'power2.inOut',
+      }, '<')
+
+      /* ── Phase 3: Settle (6.5 – 7s) ── */
+      .to(phone, {
+        rotateY: '+=0', rotateX: 6, y: 0,
+        duration: 0.5, ease: 'power2.out',
+      })
+
+      /* ── Phase 4: Tagline reveals (7 – 9s) ── */
+      .call(() => {
+        if (isNarrow) {
+          const phoneRect = stage.getBoundingClientRect();
+          const contentRect = stage.parentElement.getBoundingClientRect();
+          tagline.style.top = (phoneRect.bottom - contentRect.top + 12) + 'px';
+        }
+      })
+      .set(tagline, { opacity: 1 })
+      .to(tagLogo, { opacity: 1, y: 0, scale: 1, duration: 0.6, ease: 'back.out(2)' })
+      .to(tagText, { opacity: 1, y: 0, duration: 0.5, ease: 'power2.out' }, '-=0.2')
+      .to(tagSub,  { opacity: 1, y: 0, duration: 0.4, ease: 'power2.out' }, '-=0.15')
+      .to(tagCta,  { opacity: 1, y: 0, duration: 0.4, ease: 'power2.out' }, '-=0.1');
+
+      /* ── Infinite gentle float after settling ── */
+      gsap.to(phone, {
+        rotateY: '+=6', rotateX: 8, y: -8,
+        duration: 3.5, ease: 'sine.inOut', yoyo: true, repeat: -1,
+        delay: 7.5,
+      });
+    }
+
+    /* Start once coin image is ready, after layout is stable */
+    function startWhenReady() {
+      if (coinImg.complete) {
+        requestAnimationFrame(() => runBanner());
+        return;
+      }
+      coinImg.onload = () => requestAnimationFrame(() => runBanner());
+    }
+    startWhenReady();
+  </script>
+</body>
+</html>

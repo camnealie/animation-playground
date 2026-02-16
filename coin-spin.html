@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Loot — Coin Spin</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      background: transparent;
+      overflow: hidden;
+    }
+
+    .scene {
+      position: relative;
+      width: 100vw;
+      height: 220px;
+    }
+
+    .coin-anchor {
+      position: absolute;
+      bottom: 40px;
+      left: 50%;
+      width: 0;
+      height: 0;
+      z-index: 2;
+    }
+
+    .coin {
+      position: absolute;
+      width: 120px;
+      height: 120px;
+      left: -60px;
+      bottom: 0;
+      transform-style: preserve-3d;
+      perspective: 600px;
+    }
+
+    .coin-face {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      image-rendering: pixelated;
+      display: block;
+      backface-visibility: hidden;
+      clip-path: inset(2px);
+    }
+
+    /* Front face sits at front of 3D stack */
+    .coin-face.front {
+      transform: translateZ(4px);
+    }
+
+    /* Back face: flipped copy visible from behind */
+    .coin-face.back {
+      transform: rotateY(180deg) translateZ(4px);
+    }
+
+    /* Edge layers: clipped more aggressively to stay inside front face under perspective */
+    .coin-edge {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      image-rendering: pixelated;
+      display: block;
+      filter: brightness(0.55) saturate(1.2);
+      clip-path: inset(5px);
+    }
+
+    .shadow {
+      position: absolute;
+      bottom: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 90px;
+      height: 18px;
+      border-radius: 50%;
+      background: radial-gradient(ellipse, rgba(0,0,0,0.38) 0%, rgba(0,0,0,0.12) 50%, transparent 72%);
+      filter: blur(2px);
+    }
+
+    /* Ambient glow behind coin */
+    .coin-glow {
+      position: absolute;
+      width: 160px;
+      height: 160px;
+      left: -80px;
+      bottom: -20px;
+      border-radius: 50%;
+      background: radial-gradient(circle,
+        rgba(152, 54, 254, 0.3) 0%,
+        rgba(255, 200, 50, 0.1) 40%,
+        transparent 70%
+      );
+      filter: blur(15px);
+      pointer-events: none;
+      opacity: 0;
+    }
+
+    /* Idle sparkles */
+    .sparkle {
+      position: absolute;
+      pointer-events: none;
+      opacity: 0;
+      border-radius: 50%;
+      background: #fff;
+    }
+
+    /* Ember particles */
+    .ember {
+      position: absolute;
+      pointer-events: none;
+      opacity: 0;
+      border-radius: 2px;
+      will-change: transform, opacity;
+    }
+  </style>
+</head>
+<body>
+  <div class="scene" id="scene">
+    <div class="shadow" id="shadow"></div>
+    <div class="coin-anchor" id="coinAnchor">
+      <div class="coin-glow" id="glow"></div>
+      <div class="coin" id="coin">
+        <img class="coin-edge" src="coin.png" style="transform: translateZ(-4px);" />
+        <img class="coin-edge" src="coin.png" style="transform: translateZ(-3px);" />
+        <img class="coin-edge" src="coin.png" style="transform: translateZ(-2px);" />
+        <img class="coin-edge" src="coin.png" style="transform: translateZ(-1px);" />
+        <img class="coin-edge" src="coin.png" style="transform: translateZ(0px);" />
+        <img class="coin-edge" src="coin.png" style="transform: translateZ(1px);" />
+        <img class="coin-edge" src="coin.png" style="transform: translateZ(2px);" />
+        <img class="coin-edge" src="coin.png" style="transform: translateZ(3px);" />
+        <img class="coin-face front" src="coin.png" alt="Loot coin" />
+        <img class="coin-face back" src="coin.png" alt="" />
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const scene = document.getElementById('scene');
+    const coinAnchor = document.getElementById('coinAnchor');
+    const coin = document.getElementById('coin');
+    const shadow = document.getElementById('shadow');
+
+    /* ── Idle float (stored so we can pause during spin) ── */
+    const idleTweens = [];
+    idleTweens.push(gsap.to(coinAnchor, {
+      y: -6, duration: 2.0, ease: 'sine.inOut', yoyo: true, repeat: -1,
+    }));
+    idleTweens.push(gsap.to(shadow, {
+      scaleX: 0.88, opacity: 0.7, duration: 2.0, ease: 'sine.inOut', yoyo: true, repeat: -1,
+    }));
+    idleTweens.push(gsap.to(coin, {
+      rotateZ: 2.5, duration: 3.0, ease: 'sine.inOut', yoyo: true, repeat: -1,
+    }));
+
+    /* ── 3. Idle sparkles ── */
+    const SPARKLE_COUNT = 8;
+    const sparkles = [];
+    for (let i = 0; i < SPARKLE_COUNT; i++) {
+      const el = document.createElement('div');
+      el.className = 'sparkle';
+      scene.appendChild(el);
+      sparkles.push(el);
+    }
+
+    function startSparkles() {
+      const sceneW = scene.offsetWidth;
+      const anchorX = sceneW / 2;
+      const anchorY = 220 - 40 - 60; // scene height - anchor bottom - half coin
+
+      sparkles.forEach((s, i) => {
+        function twinkle() {
+          const size = 2 + Math.random() * 3;
+          const angle = Math.random() * Math.PI * 2;
+          const radius = 55 + Math.random() * 25;
+          const x = anchorX + Math.cos(angle) * radius;
+          const y = anchorY + Math.sin(angle) * radius;
+          const dur = 0.6 + Math.random() * 0.8;
+          const pause = 1.0 + Math.random() * 3.0;
+
+          gsap.set(s, {
+            left: x, top: y,
+            width: size, height: size,
+            opacity: 0, scale: 0,
+          });
+
+          gsap.to(s, {
+            opacity: 0.8 + Math.random() * 0.2,
+            scale: 1,
+            duration: dur * 0.4,
+            delay: pause,
+            ease: 'power2.out',
+            onComplete: () => {
+              gsap.to(s, {
+                opacity: 0,
+                scale: 0,
+                duration: dur * 0.6,
+                ease: 'power2.in',
+                onComplete: twinkle,
+              });
+            },
+          });
+        }
+        // Stagger start
+        gsap.delayedCall(i * 0.5 + Math.random(), twinkle);
+      });
+    }
+    startSparkles();
+
+    /* ── 4. Ambient glow ── */
+    const glow = document.getElementById('glow');
+    gsap.to(glow, { opacity: 0.6, duration: 1.5, ease: 'power2.out' });
+    gsap.to(glow, {
+      opacity: 0.3,
+      scale: 1.1,
+      duration: 2.5,
+      ease: 'sine.inOut',
+      yoyo: true,
+      repeat: -1,
+      delay: 1.5,
+    });
+
+    /* ── Ember cascade pool ── */
+    const EMBER_COUNT = 50;
+    const embers = [];
+    const palette = [
+      '#ffd700', '#ffb800', '#fff4b0',
+      '#9836fe', '#b66dff',
+      '#ffffff',
+    ];
+
+    for (let i = 0; i < EMBER_COUNT; i++) {
+      const el = document.createElement('div');
+      el.className = 'ember';
+      scene.appendChild(el);
+      embers.push(el);
+    }
+
+    function burstEffect() {
+      const sceneW = scene.offsetWidth;
+      const sceneRect = scene.getBoundingClientRect();
+      const coinRect = coin.getBoundingClientRect();
+      const cx = coinRect.left - sceneRect.left + coinRect.width / 2;
+      const cy = coinRect.top - sceneRect.top + coinRect.height / 2;
+
+      embers.forEach((e, i) => {
+        const side = (i % 2 === 0) ? 1 : -1;
+        const color = palette[Math.floor(Math.random() * palette.length)];
+        const size = 3 + Math.random() * 7;
+        const dist = 100 + Math.random() * (sceneW * 0.45);
+        const dur = 1.0 + Math.random() * 0.8;
+
+        const endX = cx + dist * side;
+        const endY = cy - 10 + Math.random() * 50;
+
+        gsap.set(e, {
+          left: cx, top: cy,
+          width: size, height: size,
+          background: color,
+          boxShadow: `0 0 ${size + 2}px ${color}`,
+          opacity: 0.9,
+          scale: 1,
+          rotation: Math.random() * 45,
+        });
+
+        // Single continuous motion — power3.out gives fast start, slow end
+        gsap.to(e, {
+          left: endX,
+          top: endY,
+          scale: 0.3,
+          rotation: `+=${90 + Math.random() * 180}`,
+          duration: dur,
+          ease: 'power3.out',
+        });
+
+        // Fade out over the second half
+        gsap.to(e, {
+          opacity: 0,
+          duration: dur * 0.5,
+          delay: dur * 0.5,
+          ease: 'power2.in',
+        });
+      });
+    }
+
+    /* ── Spin cycle ── */
+    function doSpin() {
+      const delay = 3 + Math.random() * 2;
+
+      gsap.delayedCall(delay, () => {
+        // Pause idle float so it doesn't fight the spin
+        idleTweens.forEach(t => t.pause());
+
+        const tl = gsap.timeline({ onComplete: () => {
+          // Resume idle float after spin completes
+          idleTweens.forEach(t => t.resume());
+          doSpin();
+        }});
+
+        // Rise up
+        tl.to(coinAnchor, { y: -22, duration: 0.35, ease: 'power2.out' });
+        tl.to(shadow, { scaleX: 0.45, scaleY: 0.45, opacity: 0.25, duration: 0.35, ease: 'power2.out' }, '<');
+
+        // Stretch slightly as it rises
+        tl.to(coin, { scaleY: 1.05, scaleX: 0.96, duration: 0.2, ease: 'power2.out' }, '<');
+
+        // 3D spin — 2 full rotations
+        tl.to(coin, { rotateY: 720, duration: 0.7, ease: 'power1.inOut' });
+
+        // Glow flare during spin
+        tl.to(glow, { opacity: 0.9, scale: 1.3, duration: 0.3, ease: 'power2.out' }, '-=0.7');
+        tl.to(glow, { opacity: 0.4, scale: 1, duration: 0.5, ease: 'power2.inOut' }, '-=0.2');
+
+        // Ember burst at peak of spin
+        tl.call(() => burstEffect(), null, '-=0.5');
+
+        // Slight wobble on Z during spin
+        tl.to(coin, { rotateZ: 5, duration: 0.175, ease: 'sine.inOut', yoyo: true, repeat: 3 }, '<');
+
+        // Shadow skews during spin
+        tl.to(shadow, { scaleX: 0.3, skewX: 8, duration: 0.175, ease: 'sine.inOut', yoyo: true, repeat: 3 }, '<');
+
+        // Reset rotation before falling (720 = 0 visually, but reset avoids 3D edge glitch)
+        tl.set(coin, { rotateY: 0 });
+
+        // Fall back down
+        tl.to(coin, { scaleX: 1, scaleY: 1, rotateZ: 0, duration: 0.15, ease: 'power2.out' });
+        tl.to(coinAnchor, { y: 0, duration: 0.3, ease: 'power3.in' });
+        tl.to(shadow, { scaleX: 1, scaleY: 1, skewX: 0, opacity: 1, duration: 0.3, ease: 'power3.in' }, '<');
+
+        // Landing squash + recover
+        tl.to(coin, { scaleX: 1.08, scaleY: 0.93, duration: 0.05, ease: 'power2.out' });
+        tl.to(coin, { scaleX: 1, scaleY: 1, duration: 0.15, ease: 'power2.out' });
+      });
+    }
+
+    doSpin();
+  </script>
+</body>
+</html>
